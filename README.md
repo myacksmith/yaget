@@ -140,8 +140,8 @@ Options:
    # Edit the configuration
    vi deployments/customer-issue-123/config/gitlab.rb
    
-   # Restart GitLab to apply changes
-   cd deployments/customer-issue-123 && docker compose restart gitlab
+   # Reconfigure GitLab to apply changes
+   docker exec gitlab-base-gitlab gitlab-ctl reconfigure
    ```
 
 3. **Clean Up**:
