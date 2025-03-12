@@ -12,9 +12,9 @@ services:
       - '${SSH_PORT:-2222}:22'
     volumes:
       - './config/gitlab.rb:/etc/gitlab/gitlab.rb:ro'
-      - '${DEPLOYMENT_NAME:-gitlab}-config:/etc/gitlab'
-      - '${DEPLOYMENT_NAME:-gitlab}-logs:/var/log/gitlab'
-      - '${DEPLOYMENT_NAME:-gitlab}-data:/var/opt/gitlab'
+      - 'gitlab-config:/etc/gitlab'
+      - 'gitlab-logs:/var/log/gitlab'
+      - 'gitlab-data:/var/opt/gitlab'
     shm_size: '256m'
     healthcheck:
       test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
@@ -30,6 +30,9 @@ networks:
     driver: bridge
 
 volumes:
-  ${DEPLOYMENT_NAME:-gitlab}-config:
-  ${DEPLOYMENT_NAME:-gitlab}-logs:
-  ${DEPLOYMENT_NAME:-gitlab}-data:
+  gitlab-config:
+    name: ${DEPLOYMENT_NAME:-gitlab}-config
+  gitlab-logs:
+    name: ${DEPLOYMENT_NAME:-gitlab}-logs
+  gitlab-data:
+    name: ${DEPLOYMENT_NAME:-gitlab}-data

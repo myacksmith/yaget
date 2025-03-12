@@ -43,12 +43,12 @@ If you want to manually deploy without using the main script:
 
 ```bash
 cd base
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Accessing GitLab
 
-- Web UI: http://localhost:8080 (or the port you configured)
+- Web UI: http://gitlab.local:8080 (or the port you configured)
 - Default username: `root`
 - Default password: Check the initial root password in the logs:
 
@@ -61,7 +61,7 @@ docker exec -it gitlab-base-gitlab grep 'Password:' /etc/gitlab/initial_root_pas
 1. **Startup Issues**: GitLab may take several minutes to start. Check the logs:
 
 ```bash
-docker-compose logs -f gitlab
+docker compose logs -f gitlab
 ```
 
 2. **Port Conflicts**: If ports are already in use, edit the `.env` file to change the port mappings.
@@ -69,6 +69,6 @@ docker-compose logs -f gitlab
 3. **Reset Installation**: To completely reset the installation:
 
 ```bash
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```

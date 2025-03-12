@@ -129,7 +129,8 @@ deploy_environment() {
     
     # Add deployment name to .env
     if grep -q "DEPLOYMENT_NAME=" "$DEPLOY_DIR/.env"; then
-        sed -i "s/DEPLOYMENT_NAME=.*/DEPLOYMENT_NAME=$name/" "$DEPLOY_DIR/.env"
+        sed -i.bak "s/DEPLOYMENT_NAME=.*/DEPLOYMENT_NAME=$name/" "$DEPLOY_DIR/.env"
+        rm -f "$DEPLOY_DIR/.env.bak"
     else
         echo "DEPLOYMENT_NAME=$name" >> "$DEPLOY_DIR/.env"
     fi
@@ -141,9 +142,9 @@ deploy_environment() {
         (cd "$DEPLOY_DIR" && ./pre-deploy.sh)
     fi
     
-    # Deploy using docker-compose
+    # Deploy using docker compose
     echo -e "${BLUE}Starting containers...${NC}"
-    (cd "$DEPLOY_DIR" && docker-compose up -d)
+    (cd "$DEPLOY_DIR" && docker compose up -d)
     
     # Check if deployment was successful
     if [ $? -eq 0 ]; then
@@ -154,7 +155,7 @@ deploy_environment() {
         echo -e "\n${YELLOW}Access Information:${NC}"
         
         # Find GitLab container
-        GITLAB_CONTAINER=$(cd "$DEPLOY_DIR" && docker-compose ps -q gitlab)
+        GITLAB_CONTAINER=$(cd "$DEPLOY_DIR" && docker compose ps -q gitlab)
         if [[ -n "$GITLAB_CONTAINER" ]]; then
             # Get port mappings
             HTTP_PORT=$(docker port "$GITLAB_CONTAINER" 80 | cut -d ":" -f 2)
@@ -162,13 +163,13 @@ deploy_environment() {
             SSH_PORT=$(docker port "$GITLAB_CONTAINER" 22 | cut -d ":" -f 2 2>/dev/null)
             
             if [[ -n "$HTTP_PORT" ]]; then
-                echo -e "GitLab Web UI: ${GREEN}http://localhost:$HTTP_PORT${NC}"
+                echo -e "GitLab Web UI: ${GREEN}http://gitlab.local:$HTTP_PORT${NC}"
             fi
             if [[ -n "$HTTPS_PORT" ]]; then
-                echo -e "GitLab HTTPS: ${GREEN}https://localhost:$HTTPS_PORT${NC}"
+                echo -e "GitLab HTTPS: ${GREEN}https://gitlab.local:$HTTPS_PORT${NC}"
             fi
             if [[ -n "$SSH_PORT" ]]; then
-                echo -e "GitLab SSH: ${GREEN}ssh://localhost:$SSH_PORT${NC}"
+                echo -e "GitLab SSH: ${GREEN}ssh://gitlab.local:$SSH_PORT${NC}"
             fi
             
             echo -e "\nDefault login: ${GREEN}root${NC}"
@@ -187,14 +188,14 @@ deploy_environment() {
         echo -e "GitLab configuration file: ${BLUE}$DEPLOY_DIR/config/gitlab.rb${NC}"
         echo -e "To modify configuration:"
         echo -e "1. Edit the gitlab.rb file"
-        echo -e "2. Restart GitLab: ${BLUE}cd $DEPLOY_DIR && docker-compose restart gitlab${NC}"
+        echo -e "2. Restart GitLab: ${BLUE}cd $DEPLOY_DIR && docker compose restart gitlab${NC}"
         
         echo -e "\n${YELLOW}To stop and remove this deployment:${NC}"
         echo -e "  ./destroy.sh $name"
     else
         echo -e "${RED}Deployment failed!${NC}"
         echo -e "Check logs for more information:"
-        echo -e "  cd $DEPLOY_DIR && docker-compose logs"
+        echo -e "  cd $DEPLOY_DIR && docker compose logs"
     fi
 }
 

@@ -29,7 +29,7 @@
 ##! On AWS EC2 instances, we also attempt to fetch the public hostname/IP
 ##! address from AWS. For more details, see:
 ##! https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
-external_url 'GENERATED_EXTERNAL_URL'
+external_url 'http://gitlab.local'
 
 ## Roles for multi-instance GitLab
 ##! The default is to have no roles enabled, which results in GitLab running as an all-in-one instance.
@@ -995,7 +995,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # registry['dir'] = "/var/opt/gitlab/registry"
 # registry['shell'] = "/usr/sbin/nologin"
 # registry['registry_http_addr'] = "127.0.0.1:5000"
-# registry['debug_addr'] = "localhost:5001"
+# registry['debug_addr'] = "gitlab.local:5001"
 # registry['log_directory'] = "/var/log/gitlab/registry"
 # registry['env_directory'] = "/opt/gitlab/etc/registry/env"
 # registry['env'] = {
@@ -1031,7 +1031,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 ###! Docs: https://docs.gitlab.com/ee/administration/packages/container_registry_metadata_database.html#new-installations
 # registry['database'] = {
 #   'enabled' => true,
-#   'host' => 'localhost',
+#   'host' => 'gitlab.local',
 #   'port' => 5432,
 #   'user' => 'postgres',
 #   'password' => 'postgres',
@@ -1118,7 +1118,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # gitlab_workhorse['listen_network'] = "unix"
 # gitlab_workhorse['listen_umask'] = 000
 # gitlab_workhorse['listen_addr'] = "/var/opt/gitlab/gitlab-workhorse/sockets/socket"
-# gitlab_workhorse['auth_backend'] = "http://localhost:8080"
+# gitlab_workhorse['auth_backend'] = "http://gitlab.local:8080"
 
 ##! Enable Redis keywatcher, if this setting is not present it defaults to true
 # gitlab_workhorse['workhorse_keywatcher'] = true
@@ -1129,7 +1129,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 ##! put an empty string on the command line
 # gitlab_workhorse['pprof_listen_addr'] = "''"
 
-# gitlab_workhorse['prometheus_listen_addr'] = "localhost:9229"
+# gitlab_workhorse['prometheus_listen_addr'] = "gitlab.local:9229"
 
 # gitlab_workhorse['dir'] = "/var/opt/gitlab/gitlab-workhorse"
 # gitlab_workhorse['log_directory'] = "/var/log/gitlab/gitlab-workhorse"
@@ -1282,7 +1282,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # puma['exporter_tls_key_path'] = ""
 
 # puma['prometheus_scrape_scheme'] = 'http'
-# puma['prometheus_scrape_tls_server_name'] = 'localhost'
+# puma['prometheus_scrape_tls_server_name'] = 'gitlab.local'
 # puma['prometheus_scrape_tls_skip_verification'] = false
 
 ##! Service name used to register Puma as a Consul service
@@ -1324,13 +1324,13 @@ external_url 'GENERATED_EXTERNAL_URL'
 # sidekiq['exporter_tls_enabled'] = false
 # sidekiq['exporter_tls_cert_path'] = ""
 # sidekiq['exporter_tls_key_path'] = ""
-# sidekiq['listen_address'] = "localhost"
+# sidekiq['listen_address'] = "gitlab.local"
 # sidekiq['listen_port'] = 8082
 
 ##! Specifies where health-check endpoints should be made available for Sidekiq processes.
 ##! Defaults to the same settings as for Prometheus metrics (see above).
 # sidekiq['health_checks_enabled'] = true
-# sidekiq['health_checks_listen_address'] = "localhost"
+# sidekiq['health_checks_listen_address'] = "gitlab.local"
 # sidekiq['health_checks_listen_port'] = 8092
 
 ##! Service name used to register Sidekiq as a Consul service
@@ -1380,8 +1380,8 @@ external_url 'GENERATED_EXTERNAL_URL'
 # gitlab_sshd['log_directory'] = "/var/log/gitlab/gitlab-sshd/"
 
 # gitlab_sshd['env_directory'] = '/opt/gitlab/etc/gitlab-sshd/env'
-# gitlab_sshd['listen_address'] = 'localhost:2222'
-# gitlab_sshd['metrics_address'] = 'localhost:9122'
+# gitlab_sshd['listen_address'] = 'gitlab.local:2222'
+# gitlab_sshd['metrics_address'] = 'gitlab.local:9122'
 # gitlab_sshd['concurrent_sessions_limit'] = 100
 # gitlab_sshd['proxy_protocol'] = false
 # gitlab_sshd['proxy_policy'] = 'use'
@@ -1823,7 +1823,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 #  "options" => {
 #    "server_tokens" => "off", # Don't show the version of NGINX
 #    "access_log" => "off", # Disable logs for stats
-#    "allow" => "127.0.0.1", # Only allow access from localhost
+#    "allow" => "127.0.0.1", # Only allow access from gitlab.local
 #    "deny" => "all" # Deny access to anyone else
 #  }
 # }
@@ -1971,7 +1971,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # gitlab_pages['sentry_environment'] = 'production'
 
 ##! Listen for requests forwarded by reverse proxy
-# gitlab_pages['listen_proxy'] = "localhost:8090"
+# gitlab_pages['listen_proxy'] = "gitlab.local:8090"
 
 # gitlab_pages['redirect_http'] = true
 # gitlab_pages['use_http2'] = true
@@ -2142,7 +2142,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 ##! Settings used by the GitLab application
 # gitlab_rails['gitlab_kas_enabled'] = true
 # gitlab_rails['gitlab_kas_external_url'] = 'ws://gitlab.gitlab.local/-/kubernetes-agent/'
-# gitlab_rails['gitlab_kas_internal_url'] = 'grpc://localhost:8153'
+# gitlab_rails['gitlab_kas_internal_url'] = 'grpc://gitlab.local:8153'
 # gitlab_rails['gitlab_kas_external_k8s_proxy_url'] = 'https://gitlab.gitlab.local/-/kubernetes-agent/k8s-proxy/'
 
 ##! Define to enable GitLab KAS
@@ -2167,22 +2167,22 @@ external_url 'GENERATED_EXTERNAL_URL'
 # gitlab_kas['websocket_token_secret_key'] = nil # Will be generated if not set. Base64 encoded and exactly 72 bytes long.
 
 ##! Listen configuration for GitLab KAS
-# gitlab_kas['listen_address'] = 'localhost:8150'
+# gitlab_kas['listen_address'] = 'gitlab.local:8150'
 # gitlab_kas['listen_network'] = 'tcp'
 # gitlab_kas['listen_websocket'] = true
 # gitlab_kas['certificate_file'] = "/path/to/certificate.pem"
 # gitlab_kas['key_file'] = "/path/to/key.pem"
 # gitlab_kas['observability_listen_network'] = 'tcp'
-# gitlab_kas['observability_listen_address'] = 'localhost:8151'
+# gitlab_kas['observability_listen_address'] = 'gitlab.local:8151'
 # gitlab_kas['internal_api_listen_network'] = 'tcp'
-# gitlab_kas['internal_api_listen_address'] = 'localhost:8153'
+# gitlab_kas['internal_api_listen_address'] = 'gitlab.local:8153'
 # gitlab_kas['internal_api_certificate_file'] = "/path/to/certificate.pem"
 # gitlab_kas['internal_api_key_file'] = "/path/to/key.pem"
-# gitlab_kas['kubernetes_api_listen_address'] = 'localhost:8154'
+# gitlab_kas['kubernetes_api_listen_address'] = 'gitlab.local:8154'
 # gitlab_kas['kubernetes_api_certificate_file'] = "/path/to/certificate.pem"
 # gitlab_kas['kubernetes_api_key_file'] = "/path/to/key.pem"
 # gitlab_kas['private_api_listen_network'] = 'tcp'
-# gitlab_kas['private_api_listen_address'] = 'localhost:8155'
+# gitlab_kas['private_api_listen_address'] = 'gitlab.local:8155'
 # gitlab_kas['private_api_certificate_file'] = "/path/to/certificate.pem"
 # gitlab_kas['private_api_key_file'] = "/path/to/key.pem"
 
@@ -2197,10 +2197,10 @@ external_url 'GENERATED_EXTERNAL_URL'
 # gitlab_kas['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/",
 #   # In a multi-node setup, this address MUST be reachable from other KAS instances. In a single-node setup,
-#   # it can be on localhost for simplicity.
+#   # it can be on gitlab.local for simplicity.
 #   # Use OWN_PRIVATE_API_CIDR + OWN_PRIVATE_API_PORT (optional) + OWN_PRIVATE_API_SCHEME (optional) if you cannot
 #   # specify a correct address for each KAS instance in OWN_PRIVATE_API_URL.
-#   # 'OWN_PRIVATE_API_URL' => 'grpc://localhost:8155'
+#   # 'OWN_PRIVATE_API_URL' => 'grpc://gitlab.local:8155'
 #   # 'OWN_PRIVATE_API_CIDR' => '10.0.0.0/8', # IPv4 example
 #   # 'OWN_PRIVATE_API_CIDR' => '2001:db8:8a2e:370::7334/64', # IPv6 example
 #   # 'OWN_PRIVATE_API_PORT' => '8155', # if not set, port from private_api_listen_address is used
@@ -2407,7 +2407,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # }
 
 ##! Advanced settings. Should be changed only if absolutely needed.
-# prometheus['listen_address'] = 'localhost:9090'
+# prometheus['listen_address'] = 'gitlab.local:9090'
 #
 
 ##! Service name used to register Prometheus as a Consul service
@@ -2433,7 +2433,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # alertmanager['log_group'] = nil
 # alertmanager['admin_email'] = 'admin@gitlab.local'
 # alertmanager['flags'] = {
-#   'web.listen-address' => "localhost:9093",
+#   'web.listen-address' => "gitlab.local:9093",
 #   'storage.path' => "/var/opt/gitlab/alertmanager/data",
 #   'config.file' => "/var/opt/gitlab/alertmanager/alertmanager.yml"
 # }
@@ -2443,7 +2443,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # }
 
 ##! Advanced settings. Should be changed only if absolutely needed.
-# alertmanager['listen_address'] = 'localhost:9093'
+# alertmanager['listen_address'] = 'gitlab.local:9093'
 # alertmanager['global'] = {}
 
 ################################################################################
@@ -2464,7 +2464,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # }
 
 ##! Advanced settings. Should be changed only if absolutely needed.
-# node_exporter['listen_address'] = 'localhost:9100'
+# node_exporter['listen_address'] = 'gitlab.local:9100'
 
 ##! Service name used to register Node Exporter as a Consul service
 # node_exporter['consul_service_name'] = 'node-exporter'
@@ -2488,7 +2488,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # }
 
 ##! Advanced settings. Should be changed only if absolutely needed.
-# redis_exporter['listen_address'] = 'localhost:9121'
+# redis_exporter['listen_address'] = 'gitlab.local:9121'
 
 ##! Service name used to register Redis Exporter as a Consul service
 # redis_exporter['consul_service_name'] = 'redis-exporter'
@@ -2508,7 +2508,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 #  'collector.stat_user_tables' => false,
 #  'collector.postmaster' => true
 # }
-# postgres_exporter['listen_address'] = 'localhost:9187'
+# postgres_exporter['listen_address'] = 'gitlab.local:9187'
 # postgres_exporter['env_directory'] = '/opt/gitlab/etc/postgres-exporter/env'
 # postgres_exporter['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
@@ -2528,7 +2528,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 # pgbouncer_exporter['enable'] = false
 # pgbouncer_exporter['log_directory'] = "/var/log/gitlab/pgbouncer-exporter"
 # pgbouncer_exporter['log_group'] = nil
-# pgbouncer_exporter['listen_address'] = 'localhost:9188'
+# pgbouncer_exporter['listen_address'] = 'gitlab.local:9188'
 # pgbouncer_exporter['env_directory'] = '/opt/gitlab/etc/pgbouncer-exporter/env'
 # pgbouncer_exporter['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
@@ -2547,7 +2547,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 
 ##! Advanced settings. Should be changed only if absolutely needed.
 # gitlab_exporter['server_name'] = 'webrick'
-# gitlab_exporter['listen_address'] = 'localhost'
+# gitlab_exporter['listen_address'] = 'gitlab.local'
 # gitlab_exporter['listen_port'] = '9168'
 
 ##! TLS settings.
@@ -2557,7 +2557,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 
 ##! Prometheus scrape related configs
 # gitlab_exporter['prometheus_scrape_scheme'] = 'http'
-# gitlab_exporter['prometheus_scrape_tls_server_name'] = 'localhost'
+# gitlab_exporter['prometheus_scrape_tls_server_name'] = 'gitlab.local'
 # gitlab_exporter['prometheus_scrape_tls_skip_verification'] = false
 
 ##! Manage gitlab-exporter sidekiq probes. false by default when Sentinels are
@@ -2567,7 +2567,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 ##! Manage gitlab-exporter elasticsearch probes. Add authorization header if security
 ##! is enabled.
 # gitlab_exporter['probe_elasticsearch'] = false
-# gitlab_exporter['elasticsearch_url'] = 'http://localhost:9200'
+# gitlab_exporter['elasticsearch_url'] = 'http://gitlab.local:9200'
 # gitlab_exporter['elasticsearch_authorization'] = 'Basic <yourbase64encodedcredentials>'
 
 ##! Service name used to register GitLab Exporter as a Consul service
@@ -2614,9 +2614,9 @@ external_url 'GENERATED_EXTERNAL_URL'
 # gitaly['configuration'] = {
 #   socket_path: '/var/opt/gitlab/gitaly/gitaly.socket',
 #   runtime_dir: '/var/opt/gitlab/gitaly/run',
-#   listen_addr: 'localhost:8075',
-#   prometheus_listen_addr: 'localhost:9236',
-#   tls_listen_addr: 'localhost:9075',
+#   listen_addr: 'gitlab.local:8075',
+#   prometheus_listen_addr: 'gitlab.local:9236',
+#   tls_listen_addr: 'gitlab.local:9075',
 #   tls: {
 #     certificate_path: '/var/opt/gitlab/gitaly/certificate.pem',
 #     key_path: '/var/opt/gitlab/gitaly/key.pem',
@@ -2653,7 +2653,7 @@ external_url 'GENERATED_EXTERNAL_URL'
 #     ],
 #   },
 #   gitlab: {
-#     url: 'http://localhost:9999',
+#     url: 'http://gitlab.local:9999',
 #     relative_url_root: '/gitlab-ee',
 #   },
 #   hooks: {
@@ -2731,9 +2731,9 @@ external_url 'GENERATED_EXTERNAL_URL'
 ##! Semantic metadata used when registering Praefect as a Consul service
 # praefect['consul_service_meta'] = {}
 # praefect['configuration'] = {
-#   listen_addr: 'localhost:2305',
-#   prometheus_listen_addr: 'localhost:9652',
-#   tls_listen_addr: 'localhost:3305',
+#   listen_addr: 'gitlab.local:2305',
+#   prometheus_listen_addr: 'gitlab.local:9652',
+#   tls_listen_addr: 'gitlab.local:3305',
 #   auth: {
 #     token: '',
 #     transitioning: false,

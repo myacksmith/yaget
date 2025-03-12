@@ -12,9 +12,9 @@ services:
       - '${SSH_PORT:-2222}:22'
     volumes:
       - './config/gitlab.rb:/etc/gitlab/gitlab.rb:ro'
-      - '${DEPLOYMENT_NAME:-gitlab-ldap}-config:/etc/gitlab'
-      - '${DEPLOYMENT_NAME:-gitlab-ldap}-logs:/var/log/gitlab'
-      - '${DEPLOYMENT_NAME:-gitlab-ldap}-data:/var/opt/gitlab'
+      - 'gitlab-config:/etc/gitlab'
+      - 'gitlab-logs:/var/log/gitlab'
+      - 'gitlab-data:/var/opt/gitlab'
     shm_size: '256m'
     healthcheck:
       test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
@@ -41,8 +41,8 @@ services:
       LDAP_TLS: "false"
       LDAP_RFC2307BIS_SCHEMA: "false"
     volumes:
-      - '${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-data:/var/lib/ldap'
-      - '${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-config:/etc/ldap/slapd.d'
+      - 'ldap-data:/var/lib/ldap'
+      - 'ldap-config:/etc/ldap/slapd.d'
       - './ldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom'
     ports:
       - '${LDAP_PORT:-3389}:389'
@@ -68,8 +68,13 @@ networks:
     driver: bridge
 
 volumes:
-  ${DEPLOYMENT_NAME:-gitlab-ldap}-config:
-  ${DEPLOYMENT_NAME:-gitlab-ldap}-logs:
-  ${DEPLOYMENT_NAME:-gitlab-ldap}-data:
-  ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-data:
-  ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-config:
+  gitlab-config:
+    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-config
+  gitlab-logs:
+    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-logs
+  gitlab-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-data
+  ldap-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-data
+  ldap-config:
+    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-config
