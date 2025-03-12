@@ -1,0 +1,51 @@
+version: '3.6'
+
+services:
+  gitlab:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab}-gitlab
+    hostname: 'gitlab.example.com'
+    restart: unless-stopped
+    environment:
+      GITLAB_OMNIBUS_CONFIG: ${GITLAB_OMNIBUS_CONFIG:-"
+        # External URL
+        external_url 'http://gitlab.example.com';
+        
+        # Disable Let's Encrypt
+        letsencrypt['enable'] = false;
+        
+        # Configure host names
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222;
+        
+        # Reduce resources for testing environments
+        puma['worker_processes'] = 2;
+        sidekiq['concurrency'] = 10;
+        postgresql['shared_buffers'] = '512MB';
+        prometheus_monitoring['enable'] = false;
+      "}
+    ports:
+      - '${HTTP_PORT:-8080}:80'
+      - '${HTTPS_PORT:-8443}:443'
+      - '${SSH_PORT:-2222}:22'
+    volumes:
+      - '${DEPLOYMENT_NAME:-gitlab}-config:/etc/gitlab'
+      - '${DEPLOYMENT_NAME:-gitlab}-logs:/var/log/gitlab'
+      - '${DEPLOYMENT_NAME:-gitlab}-data:/var/opt/gitlab'
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    driver: bridge
+
+volumes:
+  ${DEPLOYMENT_NAME:-gitlab}-config:
+  ${DEPLOYMENT_NAME:-gitlab}-logs:
+  ${DEPLOYMENT_NAME:-gitlab}-data:
