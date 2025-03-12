@@ -1,0 +1,75 @@
+version: '3.6'
+
+services:
+  gitlab:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}-gitlab
+    hostname: 'gitlab.local'
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-8080}:80'
+      - '${HTTPS_PORT:-8443}:443'
+      - '${SSH_PORT:-2222}:22'
+    volumes:
+      - './config/gitlab.rb:/etc/gitlab/gitlab.rb:ro'
+      - '${DEPLOYMENT_NAME:-gitlab-ldap}-config:/etc/gitlab'
+      - '${DEPLOYMENT_NAME:-gitlab-ldap}-logs:/var/log/gitlab'
+      - '${DEPLOYMENT_NAME:-gitlab-ldap}-data:/var/opt/gitlab'
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    depends_on:
+      - ldap
+    networks:
+      - gitlab_network
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap
+    hostname: 'ldap.gitlab.local'
+    command: --copy-service
+    environment:
+      LDAP_ORGANISATION: "Example Inc."
+      LDAP_DOMAIN: "example.org"
+      LDAP_BASE_DN: "dc=example,dc=org"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-admin}"
+      LDAP_CONFIG_PASSWORD: "${LDAP_CONFIG_PASSWORD:-config}"
+      LDAP_TLS: "false"
+      LDAP_RFC2307BIS_SCHEMA: "false"
+    volumes:
+      - '${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-data:/var/lib/ldap'
+      - '${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-config:/etc/ldap/slapd.d'
+      - './ldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom'
+    ports:
+      - '${LDAP_PORT:-3389}:389'
+      - '${LDAPS_PORT:-6636}:636'
+    networks:
+      - gitlab_network
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}-phpldapadmin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - '${LDAPADMIN_PORT:-8081}:80'
+    depends_on:
+      - ldap
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    driver: bridge
+
+volumes:
+  ${DEPLOYMENT_NAME:-gitlab-ldap}-config:
+  ${DEPLOYMENT_NAME:-gitlab-ldap}-logs:
+  ${DEPLOYMENT_NAME:-gitlab-ldap}-data:
+  ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-data:
+  ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-config:
