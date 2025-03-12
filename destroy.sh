@@ -55,5 +55,68 @@ destroy_environment() {
         fi
     fi
 
-    echo -e "${YELLOW}Stopping containers..."
+    echo -e "${BLUE}Stopping containers..."
+    (cd "$DEPLOY_DIR" && docker compose down $([ "$keep_data" != "true" ] && echo "--volumes --remove-orphans"))
 
+    # Run cleanup script if it exists
+    if [[ -f "$DEPLOY_DIR/cleanup.sh" ]]; then
+        echo -e "${BLUE}Running cleanup script...${NC}"
+        chmod +x "$DEPLOY_DIR/cleanup.sh"
+        (cd $"DEPLOY_DIR" && ./cleanup.sh)
+    fi
+
+    # Remove development directory if not keeping data
+    if [[ "$keep_data" != "true" ]]; then
+        echo -e "${BLUE}Removing deployment directory...${NC}"
+        rm -rf "$DEPLOY_DIR"
+    fi
+
+    echo -e "${GREEN}Deployment '$name' has been destroyed.${NC}"
+}
+
+# Parse command line args
+if [[ $# -eq 0 ]]; then
+    show_usage
+    exit 0
+fi
+
+NAME=""
+FORCE="false"
+KEEP_DATA="false"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        -f|--force)
+            FORCE="true"
+            shift
+            ;;
+        -k|--keep-data)
+            KEEP_DATA="true"
+            shift
+            ;;
+        *)
+            if [[ -z "$NAME" ]]; then
+                NAME="$1"
+                shift
+            else
+                echo -e "${RED}Error: Unexpected argument '$1'${NC}"
+                show_usage
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+# Validate deployment name
+if [[ -z "$NAME" ]]; then
+    echo -e "${RED}Error: Deployment name is required${NC}"
+    show_usage
+    exit 1
+fi
+
+# Destroy the environment
+destroy_environment "$NAME" "$FORCE" "$KEEP_DATA"
