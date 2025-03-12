@@ -1,5 +1,4 @@
-# GitLab Compose
-## GitLab Test Environments Using Docker Compose
+# GitLab Test Environments
 
 A collection of Docker Compose templates for quickly spinning up GitLab test environments to troubleshoot customer issues.
 
@@ -9,9 +8,10 @@ This toolkit provides ready-to-use Docker Compose configurations for common GitL
 
 ## Features
 
+- **Customer-Focused**: Use actual gitlab.rb configuration files, just like customers do
 - **Quick Deployment**: Spin up working GitLab instances with a single command
 - **Common Configurations**: Pre-built templates for typical customer setups
-- **Customizable**: Easily adjust versions and settings via environment variables
+- **Customizable**: Easily adjust versions and configurations
 - **Resource Efficient**: Optimized for development/testing environments
 - **Cleanup Tools**: Simple commands to tear down environments when done
 
@@ -38,9 +38,27 @@ chmod +x deploy.sh destroy.sh
 # Deploy a specific GitLab version
 ./deploy.sh base --version 15.11.3-ee.0
 
+# Deploy with a customer's configuration file
+./deploy.sh base --config /path/to/customer/gitlab.rb
+
 # Clean up when finished
 ./destroy.sh gitlab-base
 ```
+
+### Important: Configure Local DNS
+
+For a complete testing experience, add the GitLab hostname to your local hosts file:
+
+```bash
+# Add to /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows)
+127.0.0.1 gitlab.local
+```
+
+This enables:
+- Correct URL handling for callbacks and webhooks
+- Email domain verification
+- SSL certificate validation (when configured)
+- Better simulation of a production environment
 
 ## Available Templates
 
@@ -57,15 +75,32 @@ chmod +x deploy.sh destroy.sh
 ## Configuration
 
 Each template includes:
-- A `.env` file for customizing basic settings
-- Docker Compose files with the environment setup
-- README with template-specific instructions
+- A `config/gitlab.rb` file for GitLab configuration
+- A `.env` file for basic Docker settings (ports, version)
+- Docker Compose files for the service definitions
 
-You can customize:
-- GitLab version
-- Port mappings
-- Configuration options
-- Resource limits
+### Customizing GitLab Configuration
+
+All GitLab configuration happens through the `gitlab.rb` file, just like in production:
+
+1. **Use an existing template**: Each environment comes with a pre-configured gitlab.rb
+   ```bash
+   ./deploy.sh base
+   ```
+
+2. **Use a customer's configuration**:
+   ```bash
+   ./deploy.sh base --config /path/to/customer/gitlab.rb
+   ```
+
+3. **Modify a running deployment**:
+   ```bash
+   # Edit the configuration
+   vi deployments/gitlab-base/config/gitlab.rb
+   
+   # Restart GitLab to apply changes
+   cd deployments/gitlab-base && docker-compose restart gitlab
+   ```
 
 ## Detailed Usage
 
@@ -77,6 +112,7 @@ You can customize:
 Options:
   -v, --version VERSION  Specify GitLab version (default: latest)
   -n, --name NAME        Custom deployment name (default: template name)
+  -c, --config FILE      Custom gitlab.rb file
   -h, --help             Show help information
 ```
 
@@ -95,12 +131,18 @@ Options:
 
 1. **Reproduce Customer Issue**:
    ```bash
-   ./deploy.sh ldap --version 15.9.0-ee.0 --name customer-issue-123
+   # Deploy using the customer's configuration
+   ./deploy.sh base --config customer-gitlab.rb --name customer-issue-123
    ```
 
 2. **Experiment with Configuration**:
-   - Modify the GitLab configuration in the deployment's `.env` file
-   - Restart the containers with `docker-compose restart`
+   ```bash
+   # Edit the configuration
+   vi deployments/customer-issue-123/config/gitlab.rb
+   
+   # Restart GitLab to apply changes
+   cd deployments/customer-issue-123 && docker-compose restart gitlab
+   ```
 
 3. **Clean Up**:
    ```bash
@@ -111,13 +153,22 @@ Options:
 
 To create a custom environment:
 
-1. Copy an existing template to a new directory:
+1. Create a new template directory:
    ```bash
-   cp -r base custom-setup
+   mkdir -p custom-setup/config
    ```
 
-2. Modify the Docker Compose file and configuration
-3. Deploy with:
+2. Add your gitlab.rb configuration:
+   ```bash
+   vi custom-setup/config/gitlab.rb
+   ```
+
+3. Copy a docker-compose.yml from an existing template:
+   ```bash
+   cp base/docker-compose.yml custom-setup/
+   ```
+
+4. Deploy your custom setup:
    ```bash
    ./deploy.sh custom-setup
    ```
@@ -129,13 +180,27 @@ To create a custom environment:
 1. **Port Conflicts**: If ports are already in use, edit the `.env` file to change the port mappings.
 
 2. **Resource Constraints**: GitLab requires significant resources. On resource-limited systems, try:
-   - Reducing Puma workers and Sidekiq concurrency in GitLab config
-   - Disabling unnecessary services
+   - Reducing Puma workers and Sidekiq concurrency in gitlab.rb
+   - Disabling unnecessary services in gitlab.rb
 
 3. **Startup Timeout**: GitLab may take several minutes to initialize. Check the logs:
    ```bash
    cd deployments/gitlab-base && docker-compose logs -f gitlab
    ```
+
+4. **Configuration Errors**: If GitLab fails to start, check for configuration errors:
+   ```bash
+   # Check logs for configuration errors
+   docker-compose logs gitlab | grep "Config"
+   
+   # Validate configuration (in a running container)
+   docker exec gitlab-base-gitlab gitlab-ctl reconfigure
+   ```
+
+5. **URL/Domain Issues**: If you experience URL-related problems:
+   - Ensure you've added the hostname to your `/etc/hosts` file
+   - Make sure `external_url` in gitlab.rb matches the hostname
+   - Check that port forwarding is working correctly
 
 ## Contributing
 
