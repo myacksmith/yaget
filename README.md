@@ -97,9 +97,9 @@ All GitLab configuration happens through the `gitlab.rb` file, just like in prod
    ```bash
    # Edit the configuration
    vi deployments/gitlab-base/config/gitlab.rb
-   
-   # Restart GitLab to apply changes
-   cd deployments/gitlab-base && docker-compose restart gitlab
+
+   # Apply changes without restarting
+   docker exec -it gitlab-base-gitlab gitlab-ctl reconfigure
    ```
 
 ## Detailed Usage
@@ -141,7 +141,7 @@ Options:
    vi deployments/customer-issue-123/config/gitlab.rb
    
    # Restart GitLab to apply changes
-   cd deployments/customer-issue-123 && docker-compose restart gitlab
+   cd deployments/customer-issue-123 && docker compose restart gitlab
    ```
 
 3. **Clean Up**:
@@ -185,13 +185,13 @@ To create a custom environment:
 
 3. **Startup Timeout**: GitLab may take several minutes to initialize. Check the logs:
    ```bash
-   cd deployments/gitlab-base && docker-compose logs -f gitlab
+   cd deployments/gitlab-base && docker compose logs -f gitlab
    ```
 
 4. **Configuration Errors**: If GitLab fails to start, check for configuration errors:
    ```bash
    # Check logs for configuration errors
-   docker-compose logs gitlab | grep "Config"
+   docker compose logs gitlab | grep "Config"
    
    # Validate configuration (in a running container)
    docker exec gitlab-base-gitlab gitlab-ctl reconfigure
