@@ -14,7 +14,6 @@ alertmanager['enable'] = false
 gitlab_exporter['enable'] = false
 gitlab_rails['rake_cache_clear'] = false
 gitlab_rails['auto_migrate'] = false
-
 pages_nginx['enable'] = false
 gitlab_pages['enable'] = false
 registry['enable'] = false
