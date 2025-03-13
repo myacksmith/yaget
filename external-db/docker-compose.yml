@@ -1,5 +1,6 @@
 services:
   gitlab:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-external-db}-gitlab
     hostname: 'gitlab.local'
@@ -27,6 +28,7 @@ services:
       - gitlab_network
 
   postgres:
+    platform: linux/amd64
     image: ${POSTGRES_IMAGE:-postgres}:${POSTGRES_VERSION:-13}
     container_name: ${DEPLOYMENT_NAME:-gitlab-external-db}-postgres
     restart: unless-stopped
@@ -48,6 +50,7 @@ services:
       - gitlab_network
 
   redis:
+    platform: linux/amd64
     image: ${REDIS_IMAGE:-redis}:${REDIS_VERSION:-6.2-alpine}
     container_name: ${DEPLOYMENT_NAME:-gitlab-external-db}-redis
     restart: unless-stopped

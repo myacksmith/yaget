@@ -1,5 +1,6 @@
 services:
   gitlab:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitlab
     hostname: 'gitlab.local'
@@ -26,6 +27,7 @@ services:
       - gitaly_network
 
   gitaly1:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly1
     hostname: 'gitaly1.local'
@@ -45,6 +47,7 @@ services:
       start_period: 120s
 
   gitaly2:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly2
     hostname: 'gitaly2.local'

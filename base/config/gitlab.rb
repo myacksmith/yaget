@@ -24,7 +24,6 @@ postgresql['max_worker_processes'] = 4
 
 # Monitoring
 prometheus_monitoring['enable'] = false
-grafana['enable'] = false
 
 ## Performance tweaks
 gitlab_rails['env'] = {
@@ -36,7 +35,7 @@ gitlab_rails['gitlab_default_projects_features_container_registry'] = false
 gitlab_pages['enable'] = false
 registry['enable'] = false
 gitlab_kas['enable'] = false
-sentinels['enable'] = false
+sentinel['enable'] = false
 
 # Cache configuration (memory savings)
 redis['maxmemory'] = '256mb'

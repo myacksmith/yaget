@@ -1,5 +1,6 @@
 services:
   gitlab:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-custom}-gitlab
     hostname: 'gitlab.local'

@@ -2,6 +2,7 @@ version: '3.6'
 
 services:
   gitlab:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}-gitlab
     hostname: 'gitlab.local'
@@ -28,6 +29,7 @@ services:
       - gitlab_network
 
   ldap:
+    platform: linux/amd64
     image: osixia/openldap:1.5.0
     container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap
     hostname: 'ldap.gitlab.local'
@@ -51,6 +53,7 @@ services:
       - gitlab_network
 
   phpldapadmin:
+    platform: linux/amd64
     image: osixia/phpldapadmin:0.9.0
     container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}-phpldapadmin
     environment:

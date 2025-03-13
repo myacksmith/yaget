@@ -1,5 +1,6 @@
 services:
   gitlab-primary:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-geo}-primary
     hostname: 'gitlab-primary.local'
@@ -24,6 +25,7 @@ services:
       - gitlab_network
 
   gitlab-secondary:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-geo}-secondary
     hostname: 'gitlab-secondary.local'

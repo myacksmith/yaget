@@ -47,8 +47,8 @@ pages_nginx['enable'] = false
 gitlab_pages['enable'] = false
 registry['enable'] = false
 gitlab_kas['enable'] = false
-sentinels['enable'] = false
-grafana['enable'] = false
+sentinel['enable'] = false
+
 
 # Database cleanup settings
 gitlab_rails['db_statement_timeout'] = 15_000 # 15s

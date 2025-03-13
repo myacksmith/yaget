@@ -14,12 +14,11 @@ alertmanager['enable'] = false
 gitlab_exporter['enable'] = false
 gitlab_rails['rake_cache_clear'] = false
 gitlab_rails['auto_migrate'] = false
-grafana['enable'] = false
 pages_nginx['enable'] = false
 gitlab_pages['enable'] = false
 registry['enable'] = false
 gitlab_kas['enable'] = false
-sentinels['enable'] = false
+sentinel['enable'] = false
 
 # Enable and configure Gitaly
 gitaly['enable'] = true

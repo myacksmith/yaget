@@ -1,5 +1,6 @@
 services:
   gitlab:
+    platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-gitlab
     hostname: 'gitlab.local'
@@ -24,6 +25,7 @@ services:
       - gitlab_network
 
   runner-shell:
+    platform: linux/amd64
     image: ${RUNNER_IMAGE:-gitlab/gitlab-runner}:${RUNNER_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-shell
     restart: unless-stopped
@@ -36,6 +38,7 @@ services:
       - gitlab_network
 
   runner-docker:
+    platform: linux/amd64
     image: ${RUNNER_IMAGE:-gitlab/gitlab-runner}:${RUNNER_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-docker
     restart: unless-stopped
