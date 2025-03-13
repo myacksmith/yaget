@@ -1,0 +1,90 @@
+services:
+  gitlab:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitlab
+    hostname: 'gitlab.local'
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-8080}:80'
+      - '${HTTPS_PORT:-8443}:443'
+      - '${SSH_PORT:-2222}:22'
+    volumes:
+      - './config/gitlab.rb:/etc/gitlab/gitlab.rb:ro'
+      - 'config-vol:/etc/gitlab'
+      - 'logs-vol:/var/log/gitlab'
+      - 'data-vol:/var/opt/gitlab'
+      - './config/gitaly:/etc/gitlab/gitaly:ro'
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - gitlab_network
+      - gitaly_network
+
+  gitaly1:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly1
+    hostname: 'gitaly1.local'
+    restart: unless-stopped
+    volumes:
+      - './config/gitaly1.rb:/etc/gitlab/gitlab.rb:ro'
+      - 'gitaly1-config:/etc/gitlab'
+      - 'gitaly1-logs:/var/log/gitlab'
+      - 'gitaly1-data:/var/opt/gitlab'
+    networks:
+      - gitaly_network
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  gitaly2:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly2
+    hostname: 'gitaly2.local'
+    restart: unless-stopped
+    volumes:
+      - './config/gitaly2.rb:/etc/gitlab/gitlab.rb:ro'
+      - 'gitaly2-config:/etc/gitlab'
+      - 'gitaly2-logs:/var/log/gitlab'
+      - 'gitaly2-data:/var/opt/gitlab'
+    networks:
+      - gitaly_network
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  gitlab_network:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-network
+  gitaly_network:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly-network
+
+volumes:
+  config-vol:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-config
+  logs-vol:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-logs
+  data-vol:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-data
+  gitaly1-config:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly1-config
+  gitaly1-logs:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly1-logs
+  gitaly1-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly1-data
+  gitaly2-config:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly2-config
+  gitaly2-logs:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly2-logs
+  gitaly2-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-gitaly}-gitaly2-data
