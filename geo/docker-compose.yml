@@ -1,0 +1,68 @@
+services:
+  gitlab-primary:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-geo}-primary
+    hostname: 'gitlab-primary.local'
+    restart: unless-stopped
+    ports:
+      - '${PRIMARY_HTTP_PORT:-8080}:80'
+      - '${PRIMARY_HTTPS_PORT:-8443}:443'
+      - '${PRIMARY_SSH_PORT:-2222}:22'
+    volumes:
+      - './config/gitlab-primary.rb:/etc/gitlab/gitlab.rb:ro'
+      - 'primary-config:/etc/gitlab'
+      - 'primary-logs:/var/log/gitlab'
+      - 'primary-data:/var/opt/gitlab'
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - gitlab_network
+
+  gitlab-secondary:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-geo}-secondary
+    hostname: 'gitlab-secondary.local'
+    restart: unless-stopped
+    ports:
+      - '${SECONDARY_HTTP_PORT:-8081}:80'
+      - '${SECONDARY_HTTPS_PORT:-8444}:443'
+      - '${SECONDARY_SSH_PORT:-2223}:22'
+    volumes:
+      - './config/gitlab-secondary.rb:/etc/gitlab/gitlab.rb:ro'
+      - 'secondary-config:/etc/gitlab'
+      - 'secondary-logs:/var/log/gitlab'
+      - 'secondary-data:/var/opt/gitlab'
+    shm_size: '256m'
+    depends_on:
+      - gitlab-primary
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-network
+
+volumes:
+  primary-config:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-primary-config
+  primary-logs:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-primary-logs
+  primary-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-primary-data
+  secondary-config:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-secondary-config
+  secondary-logs:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-secondary-logs
+  secondary-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-geo}-secondary-data
