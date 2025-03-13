@@ -49,7 +49,6 @@ registry['enable'] = false
 gitlab_kas['enable'] = false
 sentinel['enable'] = false
 
-
 # Database cleanup settings
 gitlab_rails['db_statement_timeout'] = 15_000 # 15s
 gitlab_rails['db_idle_timeout'] = 60 # 60s
