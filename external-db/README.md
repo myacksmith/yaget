@@ -55,7 +55,7 @@ The setup consists of three main components:
 
 ## Accessing GitLab
 
-- Web UI: http://localhost:8080 (or the port you configured)
+- Web UI: http://gitlab.local:8080 (or the port you configured)
 - Default username: `root`
 - Default password: Check the initial root password in the logs:
 
@@ -73,7 +73,7 @@ Connect directly to the PostgreSQL database:
 docker exec -it gitlab-external-db-postgres psql -U gitlab -d gitlabhq_production
 
 # Or from your host machine
-psql -h localhost -p 5432 -U gitlab -d gitlabhq_production
+psql -h gitlab.local -p 5432 -U gitlab -d gitlabhq_production
 ```
 
 ### Redis
@@ -84,7 +84,7 @@ Connect directly to the Redis server:
 docker exec -it gitlab-external-db-redis redis-cli -a redis_password
 
 # Or from your host machine
-redis-cli -h localhost -p 6379 -a redis_password
+redis-cli -h gitlab.local -p 6379 -a redis_password
 ```
 
 ## Customizing Database Configuration

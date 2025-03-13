@@ -38,7 +38,7 @@ Edit the `.env` file to customize the deployment:
 
 ## Accessing GitLab
 
-- Web UI: http://localhost:8080 (or the port you configured)
+- Web UI: http://gitlab.local:8080 (or the port you configured)
 - Default username: `root`
 - Default password: Check the initial root password in the logs:
 

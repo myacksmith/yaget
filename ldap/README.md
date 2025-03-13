@@ -53,15 +53,15 @@ The `admin` user is automatically mapped to GitLab admin privileges through the 
 
 ## Accessing Services
 
-- GitLab: http://localhost:8080 (or the port you configured)
-- phpLDAPadmin: http://localhost:8081 (or the port you configured)
+- GitLab: http://gitlab.local:8080 (or the port you configured)
+- phpLDAPadmin: http://gitlab.local:8081 (or the port you configured)
   - Login DN: `cn=admin,dc=example,dc=org`
   - Password: `admin` (or the password you configured)
 
 ## Testing LDAP Authentication
 
 1. After deploying, wait for GitLab to fully initialize
-2. Access GitLab at http://localhost:8080
+2. Access GitLab at http://gitlab.local:8080
 3. Login with one of the LDAP users:
    - Username: `john`
    - Password: `password`

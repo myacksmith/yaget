@@ -49,12 +49,12 @@ The setup consists of two main components:
 ## Accessing GitLab
 
 ### Primary Node
-- Web UI: http://localhost:8080 (or the PRIMARY_HTTP_PORT you configured)
-- SSH: ssh://localhost:2222 (or the PRIMARY_SSH_PORT you configured)
+- Web UI: http://gitlab.local:8080 (or the PRIMARY_HTTP_PORT you configured)
+- SSH: ssh://gitlab.local:2222 (or the PRIMARY_SSH_PORT you configured)
 
 ### Secondary Node
-- Web UI: http://localhost:8081 (or the SECONDARY_HTTP_PORT you configured)
-- SSH: ssh://localhost:2223 (or the SECONDARY_SSH_PORT you configured)
+- Web UI: http://gitlab.local:8081 (or the SECONDARY_HTTP_PORT you configured)
+- SSH: ssh://gitlab.local:2223 (or the SECONDARY_SSH_PORT you configured)
 
 Default username: `root`  
 Default password: Check the initial root password in the logs:
