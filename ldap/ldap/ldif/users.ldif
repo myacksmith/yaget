@@ -1,0 +1,74 @@
+# Create organization units
+dn: ou=people,dc=example,dc=org
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=example,dc=org
+objectClass: organizationalUnit
+ou: groups
+
+# Create test users
+dn: uid=john,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: john
+sn: Doe
+givenName: John
+cn: John Doe
+displayName: John Doe
+uidNumber: 10000
+gidNumber: 10000
+userPassword: password
+gecos: John Doe
+loginShell: /bin/bash
+homeDirectory: /home/john
+mail: john.doe@example.org
+
+dn: uid=jane,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: jane
+sn: Smith
+givenName: Jane
+cn: Jane Smith
+displayName: Jane Smith
+uidNumber: 10001
+gidNumber: 10000
+userPassword: password
+gecos: Jane Smith
+loginShell: /bin/bash
+homeDirectory: /home/jane
+mail: jane.smith@example.org
+
+dn: uid=admin,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+uid: admin
+sn: Admin
+givenName: Admin
+cn: GitLab Admin
+displayName: GitLab Admin
+uidNumber: 10002
+gidNumber: 10001
+userPassword: password
+gecos: GitLab Admin
+loginShell: /bin/bash
+homeDirectory: /home/admin
+mail: admin@example.org
+
+# Create groups
+dn: cn=developers,ou=groups,dc=example,dc=org
+objectClass: posixGroup
+cn: developers
+gidNumber: 10000
+memberUid: john
+memberUid: jane
+
+dn: cn=administrators,ou=groups,dc=example,dc=org
+objectClass: posixGroup
+cn: administrators
+gidNumber: 10001
+memberUid: admin
