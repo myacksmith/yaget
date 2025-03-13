@@ -1,0 +1,65 @@
+services:
+  gitlab:
+    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-gitlab
+    hostname: 'gitlab.local'
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-8080}:80'
+      - '${HTTPS_PORT:-8443}:443'
+      - '${SSH_PORT:-2222}:22'
+    volumes:
+      - './config/gitlab.rb:/etc/gitlab/gitlab.rb:ro'
+      - 'config-vol:/etc/gitlab'
+      - 'logs-vol:/var/log/gitlab'
+      - 'data-vol:/var/opt/gitlab'
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - gitlab_network
+
+  runner-shell:
+    image: ${RUNNER_IMAGE:-gitlab/gitlab-runner}:${RUNNER_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-shell
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    volumes:
+      - './config/runner-shell-config.toml:/etc/gitlab-runner/config.toml:ro'
+      - 'runner-shell-data:/etc/gitlab-runner'
+    networks:
+      - gitlab_network
+
+  runner-docker:
+    image: ${RUNNER_IMAGE:-gitlab/gitlab-runner}:${RUNNER_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-docker
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    volumes:
+      - './config/runner-docker-config.toml:/etc/gitlab-runner/config.toml:ro'
+      - 'runner-docker-data:/etc/gitlab-runner'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-network
+
+volumes:
+  config-vol:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-config
+  logs-vol:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-logs
+  data-vol:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-data
+  runner-shell-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-runner-shell-data
+  runner-docker-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-runner-docker-data

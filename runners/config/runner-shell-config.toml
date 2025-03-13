@@ -1,0 +1,25 @@
+concurrent = 3
+check_interval = 3
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "docker-runner"
+  url = "http://gitlab:80/"
+  # The registration token is just a placeholder - it will be replaced during registration
+  token = "REGISTRATION_TOKEN_PLACEHOLDER"
+  executor = "docker"
+  [runners.docker]
+    tls_verify = false
+    image = "alpine:latest"
+    privileged = true
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
+    disable_cache = false
+    volumes = ["/cache"]
+    shm_size = 0
+  [runners.cache]
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]
