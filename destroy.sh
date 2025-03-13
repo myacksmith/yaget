@@ -47,7 +47,7 @@ destroy_environment() {
         if [[ "$keep_data" != "true" ]]; then
             echo -e "${RED}All data will be lost!${NC}"
         fi
-        read -p "Are you sure you want to continue [y/N] " -n 1 -read
+        read -p "Are you sure you want to continue [y/N] " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo -e "${BLUE}Operation cancelled.${NC}"
