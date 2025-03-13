@@ -17,7 +17,7 @@ services:
       - './config/gitaly:/etc/gitlab/gitaly:ro'
     shm_size: '256m'
     healthcheck:
-      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silent"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -40,7 +40,7 @@ services:
     networks:
       - gitaly_network
     healthcheck:
-      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silent"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -60,7 +60,7 @@ services:
     networks:
       - gitaly_network
     healthcheck:
-      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silence-deprecation"]
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silent"]
       interval: 30s
       timeout: 10s
       retries: 5
