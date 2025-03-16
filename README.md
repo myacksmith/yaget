@@ -47,12 +47,7 @@ chmod +x deploy.sh destroy.sh
 
 ### Important: Configure Local DNS
 
-For a complete testing experience, add the GitLab hostname to your local hosts file:
-
-```bash
-# Add to /etc/hosts (Linux/macOS) or C:\Windows\System32\drivers\etc\hosts (Windows)
-127.0.0.1 gitlab.local
-```
+For a complete testing experience, add the contents of the [hosts file](./hosts) to your local hosts file:
 
 This enables:
 - Correct URL handling for callbacks and webhooks
@@ -69,7 +64,6 @@ This enables:
 | `gitaly-cluster` | Gitaly Cluster | Separate Gitaly nodes configuration |
 | `geo` | Geo Replication | Primary and secondary Geo nodes |
 | `runners` | CI/CD | GitLab with pre-configured runners |
-| `external-db` | External PostgreSQL | GitLab with external database |
 | `custom` | Template for custom configs | Starting point for custom setups |
 
 ## Configuration
