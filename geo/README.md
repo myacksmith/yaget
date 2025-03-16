@@ -59,7 +59,7 @@ The setup consists of two main components:
 Default username: `root`  
 Default password: Check the initial root password in the logs:
 ```bash
-docker exec -it gitlab-geo-primary grep 'Password:' /etc/gitlab/initial_root_password
+docker exec -it geo-primary grep 'Password:' /etc/gitlab/initial_root_password
 ```
 
 ## Hostnames Setup
@@ -68,8 +68,8 @@ For proper Geo operation, add these hostnames to your `/etc/hosts` file:
 
 ```bash
 # Add to /etc/hosts
-127.0.0.1 gitlab-primary.local
-127.0.0.1 gitlab-secondary.local
+127.0.0.1 geo-primary.local
+127.0.0.1 geo-secondary.local
 ```
 
 ## Testing Geo Replication
@@ -81,7 +81,7 @@ For proper Geo operation, add these hostnames to your `/etc/hosts` file:
 To check replication status on the secondary node:
 
 ```bash
-docker exec -it gitlab-geo-secondary gitlab-rake geo:status
+docker exec -it geo-secondary gitlab-rake geo:status
 ```
 
 ## Customizing Geo Configuration
@@ -89,16 +89,16 @@ docker exec -it gitlab-geo-secondary gitlab-rake geo:status
 To customize the Geo configuration:
 
 1. Edit the configuration files:
-   - Primary node: `config/gitlab-primary.rb`
-   - Secondary node: `config/gitlab-secondary.rb`
+   - Primary node: `config/geo-primary.rb`
+   - Secondary node: `config/geo-secondary.rb`
 
 2. Apply changes by running:
    ```bash
    # For the primary node
-   docker exec -it gitlab-geo-primary gitlab-ctl reconfigure
+   docker exec -it geo-primary gitlab-ctl reconfigure
    
    # For the secondary node
-   docker exec -it gitlab-geo-secondary gitlab-ctl reconfigure
+   docker exec -it geo-secondary gitlab-ctl reconfigure
    ```
 
 ## Troubleshooting
@@ -106,14 +106,14 @@ To customize the Geo configuration:
 1. **Replication Issues**: Check the Geo log for errors:
 
 ```bash
-docker exec -it gitlab-geo-secondary gitlab-rake geo:status
-docker exec -it gitlab-geo-secondary gitlab-ctl tail geo-logcursor
+docker exec -it geo-secondary gitlab-rake geo:status
+docker exec -it geo-secondary gitlab-ctl tail geo-logcursor
 ```
 
 2. **Database Connection Issues**: Verify the secondary can connect to the primary:
 
 ```bash
-docker exec -it gitlab-geo-secondary gitlab-rake gitlab:doctor:geo
+docker exec -it geo-secondary gitlab-rake gitlab:doctor:geo
 ```
 
 3. **OAuth Issues**: If authorization fails between primary and secondary, check:

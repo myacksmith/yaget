@@ -1,16 +1,16 @@
 services:
-  gitlab-primary:
+  geo-primary:
     platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-geo}-primary
-    hostname: 'gitlab-primary.local'
+    hostname: 'geo-primary.local'
     restart: unless-stopped
     ports:
       - '${PRIMARY_HTTP_PORT:-8080}:80'
       - '${PRIMARY_HTTPS_PORT:-8443}:443'
       - '${PRIMARY_SSH_PORT:-2222}:22'
     volumes:
-      - './config/gitlab-primary.rb:/etc/gitlab/gitlab.rb:ro'
+      - './config/geo-primary.rb:/etc/gitlab/gitlab.rb:ro'
       - 'primary-config:/etc/gitlab'
       - 'primary-logs:/var/log/gitlab'
       - 'primary-data:/var/opt/gitlab'
@@ -24,24 +24,24 @@ services:
     networks:
       - gitlab_network
 
-  gitlab-secondary:
+  geo-secondary:
     platform: linux/amd64
     image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
     container_name: ${DEPLOYMENT_NAME:-gitlab-geo}-secondary
-    hostname: 'gitlab-secondary.local'
+    hostname: 'geo-secondary.local'
     restart: unless-stopped
     ports:
       - '${SECONDARY_HTTP_PORT:-8081}:80'
       - '${SECONDARY_HTTPS_PORT:-8444}:443'
       - '${SECONDARY_SSH_PORT:-2223}:22'
     volumes:
-      - './config/gitlab-secondary.rb:/etc/gitlab/gitlab.rb:ro'
+      - './config/geo-secondary.rb:/etc/gitlab/gitlab.rb:ro'
       - 'secondary-config:/etc/gitlab'
       - 'secondary-logs:/var/log/gitlab'
       - 'secondary-data:/var/opt/gitlab'
     shm_size: '256m'
     depends_on:
-      - gitlab-primary
+      - geo-primary
     healthcheck:
       test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silent"]
       interval: 30s
