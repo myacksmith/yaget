@@ -42,7 +42,7 @@ chmod +x deploy.sh destroy.sh
 ./deploy.sh base --config /path/to/customer/gitlab.rb
 
 # Clean up when finished
-./destroy.sh gitlab-base
+./destroy.sh base-gitlab
 ```
 
 ### Important: Configure Local DNS
@@ -90,10 +90,10 @@ All GitLab configuration happens through the `gitlab.rb` file, just like in prod
 3. **Modify a running deployment**:
    ```bash
    # Edit the configuration
-   vi deployments/gitlab-base/config/gitlab.rb
+   vi deployments/base-gitlab/config/gitlab.rb
 
    # Apply changes without restarting
-   docker exec -it gitlab-base-gitlab gitlab-ctl reconfigure
+   docker exec -it base-gitlab gitlab-ctl reconfigure
    ```
 
 ## Detailed Usage
@@ -135,7 +135,7 @@ Options:
    vi deployments/customer-issue-123/config/gitlab.rb
    
    # Reconfigure GitLab to apply changes
-   docker exec gitlab-base-gitlab gitlab-ctl reconfigure
+   docker exec base-gitlab gitlab-ctl reconfigure
    ```
 
 3. **Clean Up**:
@@ -179,7 +179,7 @@ To create a custom environment:
 
 3. **Startup Timeout**: GitLab may take several minutes to initialize. Check the logs:
    ```bash
-   cd deployments/gitlab-base && docker compose logs -f gitlab
+   cd deployments/base-gitlab && docker compose logs -f gitlab
    ```
 
 4. **Configuration Errors**: If GitLab fails to start, check for configuration errors:
@@ -188,7 +188,7 @@ To create a custom environment:
    docker compose logs gitlab | grep "Config"
    
    # Validate configuration (in a running container)
-   docker exec gitlab-base-gitlab gitlab-ctl reconfigure
+   docker exec base-gitlab gitlab-ctl reconfigure
    ```
 
 5. **URL/Domain Issues**: If you experience URL-related problems:

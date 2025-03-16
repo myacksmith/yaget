@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}Running post-deployment steps for LDAP environment...${NC}"
 
 # Wait for GitLab to fully initialize
-GITLAB_CONTAINER="${DEPLOYMENT_NAME:-gitlab-ldap}-gitlab"
+GITLAB_CONTAINER="${DEPLOYMENT_NAME:-gitlab-ldap}"
 echo -e "${YELLOW}Waiting for GitLab to be ready...${NC}"
 timeout 300 bash -c "until docker exec $GITLAB_CONTAINER gitlab-ctl status > /dev/null 2>&1; do sleep 5; done"
 

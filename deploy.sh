@@ -26,7 +26,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # Available environments
-ENVIRONMENTS=(base ldap gitaly-cluster geo runners external-db custom)
+ENVIRONMENTS=(base ldap gitaly-cluster geo runners custom)
 
 # Function to show usage information
 show_usage() {
@@ -39,7 +39,6 @@ show_usage() {
     echo "  gitaly-cluster - GitLab with Gitaly cluster"
     echo "  geo           - GitLab with Geo replication"
     echo "  runners       - GitLab with CI runners"
-    echo "  external-db   - GitLab with external PostgreSQL"
     echo "  custom        - Custom configuration"
     echo ""
     echo -e "${YELLOW}Options:${NC}"

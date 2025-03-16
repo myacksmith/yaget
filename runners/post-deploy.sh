@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 echo -e "${BLUE}Running post-deployment steps for CI/CD Runners environment...${NC}"
 
 # Wait for GitLab to fully initialize
-GITLAB_CONTAINER="${DEPLOYMENT_NAME:-gitlab-runners}-gitlab"
+GITLAB_CONTAINER="${DEPLOYMENT_NAME:-gitlab-runners}"
 RUNNER_SHELL_CONTAINER="${DEPLOYMENT_NAME:-gitlab-runners}-shell"
 RUNNER_DOCKER_CONTAINER="${DEPLOYMENT_NAME:-gitlab-runners}-docker"
 
