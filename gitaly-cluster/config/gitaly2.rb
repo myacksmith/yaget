@@ -3,23 +3,7 @@
 
 # Disable all other GitLab services
 roles ['gitaly']
-postgresql['enable'] = false
-redis['enable'] = false
-nginx['enable'] = false
-puma['enable'] = false
-sidekiq['enable'] = false
-gitlab_workhorse['enable'] = false
-prometheus['enable'] = false
-alertmanager['enable'] = false
-gitlab_exporter['enable'] = false
-gitlab_rails['rake_cache_clear'] = false
-gitlab_rails['auto_migrate'] = false
-pages_nginx['enable'] = false
-gitlab_pages['enable'] = false
-registry['enable'] = false
-gitlab_kas['enable'] = false
-sentinel['enable'] = false
-
+  
 # Enable and configure Gitaly
 gitaly['enable'] = true
 gitaly['listen_addr'] = '0.0.0.0:8075'
