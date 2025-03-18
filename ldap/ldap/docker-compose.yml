@@ -1,32 +1,4 @@
-version: '3.6'
-
 services:
-  gitlab:
-    platform: linux/amd64
-    image: ${GITLAB_IMAGE:-gitlab/gitlab-ee}:${GITLAB_VERSION:-latest}
-    container_name: ${DEPLOYMENT_NAME:-gitlab-ldap}
-    hostname: 'gitlab.local'
-    restart: unless-stopped
-    ports:
-      - '${HTTP_PORT:-8080}:80'
-      - '${HTTPS_PORT:-8443}:443'
-      - '${SSH_PORT:-2222}:22'
-    volumes:
-      - './config/gitlab.rb:/etc/gitlab/gitlab.rb:ro'
-      - 'gitlab-config:/etc/gitlab'
-      - 'gitlab-logs:/var/log/gitlab'
-      - 'gitlab-data:/var/opt/gitlab'
-    shm_size: '256m'
-    healthcheck:
-      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--silent"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
-    depends_on:
-      - ldap
-    networks:
-      - gitlab_network
 
   ldap:
     platform: linux/amd64
@@ -71,12 +43,6 @@ networks:
     driver: bridge
 
 volumes:
-  gitlab-config:
-    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-config
-  gitlab-logs:
-    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-logs
-  gitlab-data:
-    name: ${DEPLOYMENT_NAME:-gitlab-ldap}-data
   ldap-data:
     name: ${DEPLOYMENT_NAME:-gitlab-ldap}-ldap-data
   ldap-config:

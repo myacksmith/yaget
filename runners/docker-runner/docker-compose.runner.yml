@@ -1,0 +1,23 @@
+services:
+
+  runner-docker:
+    platform: linux/amd64
+    image: ${RUNNER_IMAGE:-gitlab/gitlab-runner}:${RUNNER_VERSION:-latest}
+    container_name: ${DEPLOYMENT_NAME:-gitlab-runners}-docker
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+    volumes:
+      - './config/runner-docker-config.toml:/etc/gitlab-runner/config.toml:ro'
+      - 'runner-docker-data:/etc/gitlab-runner'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    networks:
+      - gitlab_network
+
+networks:
+  gitlab_network:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-network
+
+volumes:
+  runner-docker-data:
+    name: ${DEPLOYMENT_NAME:-gitlab-runners}-runner-docker-data

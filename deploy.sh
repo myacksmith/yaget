@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Color codes for output formatting
 GREEN='\033[0;32m'
@@ -6,6 +7,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
 
 # Display script banner
 echo -e "${BLUE}"
@@ -21,231 +23,193 @@ echo -e "${NC}"
 echo -e "${GREEN}GitLab Test Environment Deployer${NC}"
 echo ""
 
+# Default values
+GITLAB_VERSION="latest"
 # Set script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
-
-# Available environments
-ENVIRONMENTS=(base ldap gitaly-cluster geo runners custom)
+BASE_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
+NETWORK_NAME=""
 
 # Function to show usage information
+# Function to display usage information
 show_usage() {
-    echo -e "${YELLOW}Usage:${NC}"
-    echo -e "  ./deploy.sh <environment> [options]"
-    echo ""
-    echo -e "${YELLOW}Available environments:${NC}"
-    echo "  base          - Standard GitLab EE instance"
-    echo "  ldap          - GitLab with LDAP authentication"
-    echo "  gitaly-cluster - GitLab with Gitaly cluster"
-    echo "  geo           - GitLab with Geo replication"
-    echo "  runners       - GitLab with CI runners"
-    echo "  custom        - Custom configuration"
-    echo ""
-    echo -e "${YELLOW}Options:${NC}"
-    echo "  -v, --version VERSION  - Specify GitLab version (default: latest)"
-    echo "  -n, --name NAME        - Custom deployment name (default: environment name)"
-    echo "  -c, --config FILE      - Custom gitlab.rb file path"
-    echo "  -h, --help             - Show this help message"
-    echo ""
-    echo -e "${YELLOW}Examples:${NC}"
-    echo "  ./deploy.sh base"
-    echo "  ./deploy.sh ldap -v 15.11.3-ee.0"
-    echo "  ./deploy.sh geo --name geo-test"
-    echo "  ./deploy.sh base --config /path/to/custom/gitlab.rb"
-    echo ""
+  echo "Usage: $0 <deployment_name> [--version <gitlab_version>]"
+  echo ""
+  echo "Options:"
+  echo "  --version <version>    Specify GitLab version (default: latest)"
+  echo "  --help                 Show this help message"
+  exit 0
 }
 
-# Function to validate environment
-validate_environment() {
-    local env=$1
-    for valid_env in "${ENVIRONMENTS[@]}"; do
-        if [[ "$env" == "$valid_env" ]]; then
-            return 0
-        fi
-    done
-    return 1
+# Function to log with timestamps
+log_info() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${BLUE}[$(timestamp)] INFO: $1${NC}"
 }
 
-# Function to deploy the environment
-deploy_environment() {
-    local env=$1
-    local version=$2
-    local name=$3
-    local custom_config=$4
-    
-    # Default to environment name if no custom name provided
-    if [[ -z "$name" ]]; then
-        name=$env
-    fi
-    
-    echo -e "${GREEN}Deploying GitLab $env environment as '$name'${NC}"
-    
-    if [[ ! -d "$env" ]]; then
-        echo -e "${RED}Error: Environment directory '$env' not found${NC}"
+log_err() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${RED}[$(timestamp)] ERROR: $1${NC}"
+}
+
+log_warn() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${YELLOW}[$(timestamp)] WARN: $1${NC}"
+}
+
+log_success() {
+    local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    echo "${GREEN}[$(timestamp)] SUCCESS: $1${NC}"
+}
+
+# check if dir exists
+check_dir() {
+    if [ ! -d "$1" ]; then
+        log_err "Directory $1 does not exist."
         exit 1
     fi
-    
-    # Create deployment directory
-    DEPLOY_DIR="deployments/$name"
-    mkdir -p "$DEPLOY_DIR"
-    
-    # Copy environment files to deployment directory
-    cp -r "$env"/* "$DEPLOY_DIR/"
-    
-    # Ensure config directory exists
-    mkdir -p "$DEPLOY_DIR/config"
-    
-    # Handle gitlab.rb configuration
-    if [[ -n "$custom_config" ]]; then
-        if [[ ! -f "$custom_config" ]]; then
-            echo -e "${RED}Error: Custom config file '$custom_config' not found${NC}"
-            exit 1
-        fi
-        
-        echo -e "${BLUE}Using custom gitlab.rb configuration${NC}"
-        cp "$custom_config" "$DEPLOY_DIR/config/gitlab.rb"
-    elif [[ ! -f "$DEPLOY_DIR/config/gitlab.rb" && ! -f "$env/config/gitlab.rb" ]]; then
-        echo -e "${RED}Error: No gitlab.rb configuration found for this environment${NC}"
-        echo -e "Please provide a configuration file with --config or create one at $env/config/gitlab.rb"
-        rm -rf "$DEPLOY_DIR"
-        exit 1
-    fi
-    
-    # Create .env file if it doesn't exist
-    if [[ ! -f "$DEPLOY_DIR/.env" ]]; then
-        touch "$DEPLOY_DIR/.env"
-    fi
-    
-    # Set GitLab version if specified
-    if [[ -n "$version" ]]; then
-        echo -e "${BLUE}Setting GitLab version to $version${NC}"
-        if grep -q "GITLAB_VERSION=" "$DEPLOY_DIR/.env"; then
-            sed -i "s/GITLAB_VERSION=.*/GITLAB_VERSION=$version/" "$DEPLOY_DIR/.env"
-        else
-            echo "GITLAB_VERSION=$version" >> "$DEPLOY_DIR/.env"
-        fi
-    fi
-    
-    # Add deployment name to .env
-    if grep -q "DEPLOYMENT_NAME=" "$DEPLOY_DIR/.env"; then
-        sed -i.bak "s/DEPLOYMENT_NAME=.*/DEPLOYMENT_NAME=$name/" "$DEPLOY_DIR/.env"
-        rm -f "$DEPLOY_DIR/.env.bak"
-    else
-        echo "DEPLOYMENT_NAME=$name" >> "$DEPLOY_DIR/.env"
-    fi
-    
-    # Run pre-deploy script if exists
-    if [[ -f "$DEPLOY_DIR/pre-deploy.sh" ]]; then
-        echo -e "${BLUE}Running pre-deployment script...${NC}"
-        chmod +x "$DEPLOY_DIR/pre-deploy.sh"
-        (cd "$DEPLOY_DIR" && ./pre-deploy.sh)
-    fi
-    
-    # Deploy using docker compose
-    echo -e "${BLUE}Starting containers...${NC}"
-    (cd "$DEPLOY_DIR" && docker compose up -d)
-    
-    # Check if deployment was successful
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}Deployment successful!${NC}"
-        echo -e "${BLUE}Deployment directory:${NC} $DEPLOY_DIR"
-        
-        # Display URLs and access information
-        echo -e "\n${YELLOW}Access Information:${NC}"
-        
-        # Find GitLab container
-        GITLAB_CONTAINER=$(cd "$DEPLOY_DIR" && docker compose ps -q gitlab)
-        if [[ -n "$GITLAB_CONTAINER" ]]; then
-            # Get port mappings
-            HTTP_PORT=$(docker port "$GITLAB_CONTAINER" 80 | cut -d ":" -f 2)
-            HTTPS_PORT=$(docker port "$GITLAB_CONTAINER" 443 | cut -d ":" -f 2 2>/dev/null)
-            SSH_PORT=$(docker port "$GITLAB_CONTAINER" 22 | cut -d ":" -f 2 2>/dev/null)
-            
-            if [[ -n "$HTTP_PORT" ]]; then
-                echo -e "GitLab Web UI: ${GREEN}http://gitlab.local:$HTTP_PORT${NC}"
-            fi
-            if [[ -n "$HTTPS_PORT" ]]; then
-                echo -e "GitLab HTTPS: ${GREEN}https://gitlab.local:$HTTPS_PORT${NC}"
-            fi
-            if [[ -n "$SSH_PORT" ]]; then
-                echo -e "GitLab SSH: ${GREEN}ssh://gitlab.local:$SSH_PORT${NC}"
-            fi
-            
-            echo -e "\nDefault login: ${GREEN}root${NC}"
-            echo -e "Default password: ${GREEN}Check the logs for initial root password${NC}"
-            echo -e "Run: ${BLUE}docker exec -it $GITLAB_CONTAINER grep 'Password:' /etc/gitlab/initial_root_password${NC}"
-        fi
-        
-        # Run post-deploy script if exists
-        if [[ -f "$DEPLOY_DIR/post-deploy.sh" ]]; then
-            echo -e "\n${BLUE}Running post-deployment script...${NC}"
-            chmod +x "$DEPLOY_DIR/post-deploy.sh"
-            (cd "$DEPLOY_DIR" && ./post-deploy.sh)
-        fi
-        
-        echo -e "\n${YELLOW}Configuration:${NC}"
-        echo -e "GitLab configuration file: ${BLUE}$DEPLOY_DIR/config/gitlab.rb${NC}"
-        echo -e "To modify configuration:"
-        echo -e "1. Edit the gitlab.rb file"
-        echo -e "2. Restart GitLab: ${BLUE}cd $DEPLOY_DIR && docker compose restart gitlab${NC}"
-        
-        echo -e "\n${YELLOW}To stop and remove this deployment:${NC}"
-        echo -e "  ./destroy.sh $name"
-    else
-        echo -e "${RED}Deployment failed!${NC}"
-        echo -e "Check logs for more information:"
-        echo -e "  cd $DEPLOY_DIR && docker compose logs"
-    fi
 }
 
-# Parse command line arguments
-if [[ $# -eq 0 ]]; then
+# Parse command line args
+if [ $# -lt 1 ]; then
     show_usage
-    exit 0
 fi
 
-ENV=""
-VERSION=""
-NAME=""
-CONFIG=""
+DEPLOYMENT_NAME="$1"
+shift
 
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --version|-v)
+            if [ -n "$2" ]; then
+                GITLAB_VERSION="$2"
+                shift 2
+            else
+                log_err "Version argument is missing."
+                show_usage
+            fi
+            ;;
+        --help|-h)
             show_usage
-            exit 0
-            ;;
-        -v|--version)
-            VERSION="$2"
-            shift 2
-            ;;
-        -n|--name)
-            NAME="$2"
-            shift 2
-            ;;
-        -c|--config)
-            CONFIG="$2"
-            shift 2
             ;;
         *)
-            if [[ -z "$ENV" ]]; then
-                ENV="$1"
-                shift
-            else
-                echo -e "${RED}Error: Unexpected argument '$1'${NC}"
-                show_usage
-                exit 1
-            fi
+            log_err "Unknown option $1."
+            show_usage
             ;;
     esac
 done
 
-# Validate environment
-if ! validate_environment "$ENV"; then
-    echo -e "${RED}Error: Invalid environment '$ENV'${NC}"
-    show_usage
+# Check if deploy dir exists
+DEPLOYMENT_DIR="${SCRIPT_DIR}/${DEPLOYMENT_NAME}"
+check_dir "${DEPLOYMENT_DIR}"
+
+# Create a docker network for this deployment if it doesn't already exists
+NETWORK_NAME="${DEPLOYMENT_NAME}-network"
+if ! docker network inspect "${NETWORK_NAME}" &>/dev/null; then
+    log_info "Creating Docker network: ${NETWORK_NAME}"
+    docker network create "${NETWORK_NAME}"
+fi
+
+# Find all service dirs
+SERVICE_DIRS=$(find "${DEPLOYMENT_DIR}" -mindept 1 -maxdepth 1 -type d | sort)
+
+if [ -z "${SERVICE_DIRS}" ]; then
+    log_err "No service directories found in ${DEPLOYMENT_DIR}"
     exit 1
 fi
 
-# Deploy the environment
-deploy_environment "$ENV" "$VERSION" "$NAME" "$CONFIG"
+# function to deploy a service
+deploy_service() {
+    local service_dir="$1"
+    local service_name=$(basename "${service_dir}")
+    local service_index="$2" # Index of this service in the deployment
+    local container_name="${DEPLOYMENT_NAME}-${service_name}"
+    local custom_compose_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml"
+    local compose_file="${BASE_COMPOSE_FILE}"
+
+    log_info "Deploying service: ${service_name} (index: ${service_index})"
+
+    # Check if custom docker-compose file exists for this service
+    if [ -f "${custom_compose_file}" ]; then
+        log_info "Using custom docker-compose.yml file: ${custom_compose_file}"
+        compose_file="${custom_compose_file}"
+    else
+        log_info "Using base docker-compose file: ${BASE_COMPOSE_FILE}"
+    fi
+
+    # Check if service has a config file
+    if [ ! -f "${service_dir}/gitlab.rb" ]; then
+        log_warn "No gitlab.rb file found for service ${service_name}"
+    fi
+
+    # Calculate port offsets based on service index
+    local http_port=$((80 + service_index))
+    local https_port=$((443 + service_index))
+    local ssh_port=$((2222 + service_index))
+    
+    # Set environment variables for docker-compose
+    export GITLAB_VERSION="${GITLAB_VERSION}"
+    export SERVICE_NAME="${service_name}"
+    export CONTAINER_NAME="${container_name}"
+    export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
+    export NETWORK_NAME="${NETWORK_NAME}"
+    export CONFIG_PATH="${service_dir}/gitlab.rb"
+    export HTTP_PORT="${http_port}"
+    export HTTPS_PORT="${https_port}"
+    export SSH_PORT="${ssh_port}"
+
+    # deploy the service using docker compose
+    if [ -f "${compose_file}" ]; then
+        docker compose -f "${compose_file}" -p "${DEPLOYMENT_NAME}" up -d "$service_name" || {
+            log_err "Failed to deploy service ${service_name}"
+            return 1
+        }
+        log_success "Service $service_name deployed"
+    else
+        log_err "Compose file ${compose_file} not found"
+        return 1
+    fi
+
+    return 0
+}
+
+# Deploy each service
+FAILURE=0
+DEPLOYED_SERVICES=()
+SERVICE_INDEX=0
+
+for service_dir in ${SERVICE_DIRS}; do
+    if deploy_service "${service_dir}" "${SERVICE_INDEX}"; then
+        DEPLOYED_SERVICES+=("$(basename "${service_dir}")")
+    else
+        log_warn "Failed to deploy service $(basename "${service_dir}")"
+        FAILURE=1
+    fi
+    # Increment service index for consecutive port assignment
+    SERVICE_INDEX=$((SERVICE_INDEX + 1))
+done
+
+if [ ${#DEPLOYED_SERVICES[@]} -eq 0 ]; then
+    log_err "No services were deployed"
+    exit 1
+fi
+
+log_info "=== Deployment Summary ==="
+log_info "Deployment: ${DEPLOYMENT_NAME}"
+log_info "GitLab Version: ${GITLAB_VERSION}"
+log_info "Docker Network: ${NETWORK_NAME}"
+log_info "Deployed Services:"
+
+for service in "${DEPLOYED_SERVICES[@]}"; do
+    log_info "  - ${service} (container: ${DEPLOYMENT_NAME}-${service}, hostname: ${DEPLOYMENT_NAME}-${service}.local)"
+done
+
+if [ ${FAILURE} -eq 1 ]; then
+    log_warn "Some services failed to deploy. Check the logs above for details."
+fi
+
+log_success "Deployment completed"
+log_info "Note: Remember to update the /etc/hosts file with entries for each service:"
+for service in "${DEPLOYED_SERVICES[@]}"; do
+    log_info "  127.0.0.1       ${DEPLOYMENT_NAME}-${service}.local"
+done
