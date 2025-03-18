@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  $SERVICE_NAME:
+    image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
+    container_name: "$CONTAINER_NAME"
+    hostname: "$CONTAINER_NAME.local"
+    restart: unless-stopped
+    environment:
+      GITLAB_OMNIBUS_CONFIG: "from_file('/etc/gitlab/gitlab.rb')"
+    volumes:
+      - "$CONFIG_PATH:/etc/gitlab/gitlab.rb:ro"
+      - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/gitlab"
+      - "$DEPLOYMENT_NAME-$SERVICE_NAME-logs:/var/log/gitlab"
+      - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/opt/gitlab"
+    networks:
+      - "$NETWORK_NAME"
+    # Custom ports for the secondary
+    ports:
+      - "8081:80"  # Map secondary to a different port
+      - "${SSH_PORT:-2223}:22"  # Different SSH port
+    depends_on:
+      - primary    # Ensure primary starts first
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--max-time", "10"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  $DEPLOYMENT_NAME-$SERVICE_NAME-config:
+    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-config"
+  $DEPLOYMENT_NAME-$SERVICE_NAME-logs:
+    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-logs"
+  $DEPLOYMENT_NAME-$SERVICE_NAME-data:
+    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
+
+networks:
+  $NETWORK_NAME:
+    external: true

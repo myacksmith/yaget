@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  $SERVICE_NAME:
+    image: "gitlab/gitlab-runner:${GITLAB_VERSION:-latest}"
+    container_name: "$CONTAINER_NAME"
+    hostname: "$CONTAINER_NAME.local"
+    restart: unless-stopped
+    volumes:
+      - "$CONFIG_PATH:/etc/gitlab-runner/config.toml:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/etc/gitlab-runner"
+    networks:
+      - "$NETWORK_NAME"
+    environment:
+      - REGISTER_NON_INTERACTIVE=true
+
+volumes:
+  $DEPLOYMENT_NAME-$SERVICE_NAME-data:
+    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
+
+networks:
+  $NETWORK_NAME:
+    external: true
