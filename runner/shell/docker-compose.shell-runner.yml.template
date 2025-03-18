@@ -10,14 +10,26 @@ services:
       - "$CONFIG_PATH:/etc/gitlab-runner/config.toml:ro"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/etc/gitlab-runner"
+      # Mount the runner's home directory to persist bash history, etc.
+      - "$DEPLOYMENT_NAME-$SERVICE_NAME-home:/home/gitlab-runner"
+      # Add any additional volumes that might be needed by your CI jobs
+      - "/tmp:/tmp"
     networks:
       - "$NETWORK_NAME"
     environment:
       - REGISTER_NON_INTERACTIVE=true
+    # Use privileged mode to allow the shell executor to access resources
+    privileged: true
+    # Add extra capabilities if needed for your shell jobs
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
 
 volumes:
   $DEPLOYMENT_NAME-$SERVICE_NAME-data:
     name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
+  $DEPLOYMENT_NAME-$SERVICE_NAME-home:
+    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-home"
 
 networks:
   $NETWORK_NAME:

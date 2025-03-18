@@ -196,6 +196,7 @@ EOF" > "${temp_compose_file}"
   local temp_compose_file=$(mktemp)
   
   # Export all variables needed for envsubst
+  export DEPLOYMENT_DIR
   export SERVICE_NAME="${service_name}"
   export GITLAB_VERSION="${GITLAB_VERSION}"
   export CONTAINER_NAME="${container_name}"
