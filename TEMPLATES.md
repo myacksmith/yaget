@@ -1,100 +1,50 @@
-# Creating Custom Templates
+# Template Reference Guide
 
-This guide explains how to create custom templates for your GitLab services.
+This document provides a reference for creating and customizing templates used in the GitLab test environment system.
 
-## Template Variables
+## Base Docker Compose Template
 
-The following variables are available in templates:
+The base `docker-compose.yml.template` file defines the standard configuration for a GitLab service.
+
+### Available Variables
+
+The following environment variables are available for substitution in templates:
 
 | Variable | Description | Example Value |
 |----------|-------------|--------------|
-| `$SERVICE_NAME` | Name of the service | `gitlab` |
+| `$SERVICE_NAME` | Name of the service derived from directory name | `gitlab` |
 | `$CONTAINER_NAME` | Full container name | `deployment-name-gitlab` |
 | `$DEPLOYMENT_NAME` | Name of the deployment | `deployment-name` |
 | `$NETWORK_NAME` | Docker network name | `deployment-name-network` |
 | `$CONFIG_PATH` | Path to configuration file | `/path/to/gitlab.rb` |
-| `$GITLAB_VERSION` | GitLab version | `15.11.3-ce.0` |
-| `$HTTP_PORT` | HTTP port (incremental) | `80` |
-| `$HTTPS_PORT` | HTTPS port (incremental) | `443` |
-| `$SSH_PORT` | SSH port (incremental) | `2222` |
+| `$GITLAB_VERSION` | GitLab version | `15.11.3-ee.0` |
+| `$HTTP_PORT` | HTTP port (randomized) | `12345` |
+| `$HTTPS_PORT` | HTTPS port (randomized) | `12445` |
+| `$SSH_PORT` | SSH port (randomized) | `12545` |
+| `$SERVICE_DIR` | Path to service directory | `/path/to/service-dir` |
 
-## Template Example
+### Template Syntax
 
-Create a file named `docker-compose.service-name.yml.template` in your service directory.
+Variables in templates use the `$VARIABLE` or `${VARIABLE}` syntax which is processed by `envsubst`.
 
-Here's a basic example for a GitLab service with customized ports:
-
+Example variable usage:
 ```yaml
-version: '3.8'
-
 services:
   $SERVICE_NAME:
     image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
-    container_name: "$CONTAINER_NAME"
-    hostname: "$CONTAINER_NAME.local"
-    restart: unless-stopped
-    environment:
-      GITLAB_OMNIBUS_CONFIG: "from_file('/etc/gitlab/gitlab.rb')"
-    volumes:
-      - "$CONFIG_PATH:/etc/gitlab/gitlab.rb:ro"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/gitlab"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-logs:/var/log/gitlab"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/opt/gitlab"
-    networks:
-      - "$NETWORK_NAME"
-    # Custom ports configuration
-    ports:
-      - "9080:80"  # Custom HTTP port
-      - "9443:443" # Custom HTTPS port
-      - "${SSH_PORT:-2222}:22"  # Use incremental SSH port
-
-volumes:
-  $DEPLOYMENT_NAME-$SERVICE_NAME-config:
-    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-logs"
-  $DEPLOYMENT_NAME-$SERVICE_NAME-data:
-    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
-
-networks:
-  $NETWORK_NAME:
-    external: true
 ```
 
-## Advanced Template Examples
-
-### 1. GitLab Runner Service
-
-This template is designed for GitLab Runner services:
-
+Default values can be specified with `${VARIABLE:-default}` syntax:
 ```yaml
-version: '3.8'
-
-services:
-  $SERVICE_NAME:
-    image: "gitlab/gitlab-runner:${GITLAB_VERSION:-latest}"
-    container_name: "$CONTAINER_NAME"
-    hostname: "$CONTAINER_NAME.local"
-    restart: unless-stopped
-    volumes:
-      - "$CONFIG_PATH:/etc/gitlab-runner/config.toml:ro"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/etc/gitlab-runner"
-    networks:
-      - "$NETWORK_NAME"
-    environment:
-      - REGISTER_NON_INTERACTIVE=true
-
-volumes:
-  $DEPLOYMENT_NAME-$SERVICE_NAME-data:
-    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
-
-networks:
-  $NETWORK_NAME:
-    external: true
+ports:
+  - "${HTTP_PORT:-80}:80"
 ```
 
-### 2. LDAP Service
+## Custom Docker Compose Templates
 
-This template sets up an LDAP server that can integrate with GitLab:
+You can create custom templates for specific services by adding a file named `docker-compose.service-name.yml.template` in the service directory.
+
+### Example: Custom Template for LDAP
 
 ```yaml
 version: '3.8'
@@ -102,68 +52,79 @@ version: '3.8'
 services:
   $SERVICE_NAME:
     image: "osixia/openldap:1.5.0"
-    container_name: "$CONTAINER_NAME"
-    hostname: "$CONTAINER_NAME.local"
-    restart: unless-stopped
     environment:
-      - LDAP_ORGANISATION="Example Inc."
       - LDAP_DOMAIN=example.org
       - LDAP_ADMIN_PASSWORD=admin
     volumes:
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/lib/ldap"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/ldap/slapd.d"
-      - "$CONFIG_PATH:/container/service/slapd/assets/config/bootstrap/ldif/custom"
-    networks:
-      - "$NETWORK_NAME"
+      - "./ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
     ports:
-      - "389:389"
-      - "636:636"
-
-volumes:
-  $DEPLOYMENT_NAME-$SERVICE_NAME-data:
-    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
-  $DEPLOYMENT_NAME-$SERVICE_NAME-config:
-    name: "$DEPLOYMENT_NAME-$SERVICE_NAME-config"
-
-networks:
-  $NETWORK_NAME:
-    external: true
+      - "${LDAP_PORT:-$((10000 + RANDOM % 1000))}:389"
+      - "${LDAPS_PORT:-$((10000 + RANDOM % 1000))}:636"
 ```
 
-## Template Syntax Tips
+### Example: Custom Template with Service Dependencies
 
-1. **Default Values**: Use the `${VARIABLE:-default}` syntax to provide default values:
-   ```yaml
-   image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
-   ```
+```yaml
+version: '3.8'
 
-2. **Variable References**: For proper variable substitution, use:
-   - `$VARIABLE` for simple variables
-   - `${VARIABLE}` when followed by text or for default values
+services:
+  $SERVICE_NAME:
+    image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
+    depends_on:
+      - anotherservice
+```
 
-3. **Escaping Dollar Signs**: If you need a literal dollar sign in your template, double it:
-   ```yaml
-   # This will result in a single $ in the output
-   literal_dollar: "$"
-   ```
+## Post-Deployment Scripts
 
-4. **Debugging Templates**: To see what a rendered template looks like without deploying:
-   ```bash
-   # Export necessary variables
-   export SERVICE_NAME=gitlab
-   export DEPLOYMENT_NAME=test
-   # ... other variables
-   
-   # Render template to stdout
-   envsubst < your-template.yml.template
-   ```
+You can add post-deployment automation by creating an executable `post-deploy.sh` script in a service directory. This script will run automatically after all services are deployed.
 
-## Best Practices
+### Variables Available to Post-Deployment Scripts
 
-1. **Keep Templates Focused**: Each template should serve a specific purpose
-2. **Comment Your Templates**: Add comments explaining custom configurations
-3. **Version in Source Control**: Keep your templates in version control
-4. **Validate Before Deployment**: Test templates with `envsubst` before using them
-5. **Share Common Patterns**: Create a library of reusable templates for common service types-$SERVICE_NAME-config"
-  $DEPLOYMENT_NAME-$SERVICE_NAME-logs:
-    name: "$DEPLOYMENT_NAME
+Post-deployment scripts have access to the following environment variables:
+
+- `DEPLOYMENT_NAME`: The name of the deployment
+- `NETWORK_NAME`: The Docker network name
+- Container names follow the pattern `${DEPLOYMENT_NAME}-${SERVICE_NAME}`
+
+### Example: LDAP Post-Deployment Script
+
+```bash
+#!/bin/bash
+# Wait for LDAP to be ready
+sleep 5
+
+# Add LDIF entries to LDAP
+docker exec sso-ldap ldapadd -c -x -H ldap://localhost:389 \
+  -D "cn=admin,dc=example,dc=org" -w admin \
+  -f /container/service/slapd/assets/config/bootstrap/ldif/custom/users.ldif
+```
+
+## Working with Paths in Templates
+
+When using relative paths in templates, be aware that Docker Compose resolves them relative to the location of the compose file, not the template. 
+
+To ensure correct path resolution:
+
+1. **Use absolute paths** when possible
+2. **Use environment variables** like `$SERVICE_DIR` for paths
+3. **Use the current directory** (`./`) for files that are in the service directory
+4. **Verify paths** in the generated compose file if you encounter issues
+
+### Example: Correct Path Usage
+
+```yaml
+volumes:
+  - "${SERVICE_DIR}/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
+```
+
+## Template Processing
+
+Templates are processed in this order:
+
+1. Template file is selected (custom or base)
+2. Environment variables are exported
+3. Template is processed with `envsubst`
+4. Processed file is used by Docker Compose
+5. Temporary file is deleted after deployment
+
+The final processed file exists only temporarily during deployment.
