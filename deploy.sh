@@ -188,9 +188,11 @@ EOF" > "${temp_compose_file}"
   fi
   
   # Calculate port offsets based on service index
-  local http_port=$((80 + service_index))
-  local https_port=$((443 + service_index))
-  local ssh_port=$((2222 + service_index))
+  # and generate a random port range to avoid collisions
+  local port_base=$((10000 + (RANDOM % 5000)))
+  local http_port=$((port_base + service_index))
+  local https_port=$((port_base + 100+ service_index))
+  local ssh_port=$((port_base + 200 + service_index))
   
   # Create a temporary compose file with rendered template
   local temp_compose_file=$(mktemp)
@@ -256,6 +258,17 @@ if [ ${#DEPLOYED_SERVICES[@]} -eq 0 ]; then
   exit 1
 fi
 
+# Run post deployment scripts for each service
+for service in "${DEPLOYED_SERVICES[@]}"; do
+  post_deploy_script="${DEPLOYMENT_DIR}/${service}/post-deploy.sh"
+  if [ -f "${post_deploy_script}" ] && [ -x "${post_deploy_script}" ]; then
+    log "Running post-deployment script for ${service}..."
+    "${post_deploy_script}" || {
+      log_warn "Post-deployment script for ${service} returned non-zero exit code"
+    }
+  fi
+done
+
 # Show deployment summary
 echo ""
 log "=== Deployment Summary ==="
@@ -266,6 +279,14 @@ log "Deployed Services:"
 
 for service in "${DEPLOYED_SERVICES[@]}"; do
   log "  - ${service} (container: ${DEPLOYMENT_NAME}-${service}, hostname: ${DEPLOYMENT_NAME}-${service}.local)"
+
+  # Attempt to find the random exposed ports
+  if docker port "${DEPLOYMENT_NAME}-${service}" &>/dev/null; then
+    log "     Exposed Ports:"
+    docker port "${DEPLOYMENT_NAME}-${service}" | while read -r port_mapping; do
+      log "       $port_mapping"
+    done
+  fi
 done
 
 if [ ${FAILURE} -eq 1 ]; then
@@ -274,7 +295,7 @@ fi
 
 log_success "Deployment completed"
 echo ""
-log "Remember to manually update your /etc/hosts file with entries for each service:"
+log "Remember to update your /etc/hosts file with entries for each service:"
 for service in "${DEPLOYED_SERVICES[@]}"; do
   echo "  127.0.0.1    ${DEPLOYMENT_NAME}-${service}.local"
 done
