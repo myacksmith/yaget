@@ -2,8 +2,7 @@
 # Standard configuration with resource optimizations
 
 ## URL and SSH settings
-external_url 'http://gitlab.local'
-gitlab_rails['gitlab_shell_ssh_port'] = 2222
+external_url 'http://basic-gitlab.local'
 
 ## Disable Let's Encrypt
 letsencrypt['enable'] = false
@@ -13,10 +12,6 @@ letsencrypt['enable'] = false
 puma['worker_processes'] = 2
 puma['min_threads'] = 1
 puma['max_threads'] = 4
-
-# Sidekiq (background jobs)
-sidekiq['concurrency'] = 10
-sidekiq['min_concurrency'] = 5
 
 # PostgreSQL
 postgresql['shared_buffers'] = '512MB'
