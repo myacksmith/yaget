@@ -1,4 +1,4 @@
-# GitLab Testing Environment
+# GitLab Compose
 
 A flexible system for GitLab support engineers to quickly set up, manage, and share testing environments without hardcoded configurations.
 
