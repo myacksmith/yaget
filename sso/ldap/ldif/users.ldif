@@ -1,7 +1,6 @@
 # LDIF export for GitLab testing
-# Base: dc=example,dc=org
+ Base: dc=example,dc=org
 # Create organizational units
-
 dn: ou=users,dc=example,dc=org
 objectClass: organizationalUnit
 ou: users

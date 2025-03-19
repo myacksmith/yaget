@@ -1,153 +1,95 @@
-# Setting Up SSO with GitLab and LDAP
+# Single Sign-On (SSO) Deployment
 
-This guide explains how to set up Single Sign-On (SSO) for GitLab using the LDAP integration.
+This deployment provides a GitLab instance with LDAP-based Single Sign-On (SSO).
 
-## Overview
+## Configuration Overview
 
-The SSO deployment creates two primary services:
+This deployment contains:
 
-1. **LDAP Server**: Provides user authentication and directory services
-2. **GitLab Instance**: Configured to use LDAP for authentication
+1. **GitLab Service**: Configured to authenticate against LDAP
+2. **LDAP Service**: OpenLDAP server with predefined users and groups
 
-## Deployment Steps
-
-### 1. Set Up Directory Structure
-
-Create the necessary directories and files:
-
-```bash
-# Create base directories
-mkdir -p gitlab-test-env/sso/gitlab
-mkdir -p gitlab-test-env/sso/ldap/ldif
-
-# Copy configuration files
-cp gitlab.rb gitlab-test-env/sso/gitlab/
-cp docker-compose.ldap.yml.template gitlab-test-env/sso/ldap/
-cp users.ldif gitlab-test-env/sso/ldap/ldif/
-```
-
-### 2. Deploy the Environment
-
-```bash
-cd gitlab-test-env
-./deploy.sh sso
-```
-
-### 3. Update Your Hosts File
-
-Add these entries to your `/etc/hosts` file:
+## Directory Structure
 
 ```
-127.0.0.1    sso-gitlab.local
-127.0.0.1    sso-ldap.local
+sso/
+├── gitlab/
+│   └── gitlab.rb                # GitLab configuration with LDAP settings
+└── ldap/
+    ├── docker-compose.ldap.yml.template  # LDAP service template
+    ├── ldif/                    # LDIF files directory
+    │   └── users.ldif           # User definitions for LDAP
+    └── post-deploy.sh           # Post-deployment script for LDAP
 ```
 
-### 4. Verify LDAP Configuration
+## Users and Groups
 
-Use the `ldapsearch` command to verify the LDAP server is running correctly:
+The default LDIF file includes these users:
 
-```bash
-# Get the exposed port for the LDAP service
-docker port sso-ldap 389
+| Username | Password    | Role     | Email                  |
+|----------|-------------|----------|------------------------|
+| john     | password123 | Admin    | john.doe@example.org   |
+| jane     | password123 | Developer| jane.smith@example.org |
+| bob      | password123 | Developer| bob.johnson@example.org|
 
-# Run ldapsearch (replace PORT with the actual port number)
-ldapsearch -x -H ldap://localhost:PORT -b "dc=example,dc=org" -D "cn=admin,dc=example,dc=org" -w admin
-```
+## Deployment Instructions
 
-This should return all entries in your LDAP directory.
+1. Make sure the required files exist:
+   ```bash
+   # Check if files exist
+   ls -la sso/gitlab/gitlab.rb
+   ls -la sso/ldap/ldif/users.ldif
+   ```
 
-### 5. Test GitLab LDAP Authentication
+2. Deploy:
+   ```bash
+   ./deploy.sh sso
+   ```
 
-1. Access GitLab at http://sso-gitlab.local (check port in deployment summary)
-2. Login with LDAP credentials:
-   - Username: Use one from your LDIF file (e.g., `john`)
-   - Password: Password from your LDIF file (e.g., `password123`)
+## Post-Deployment Setup
+
+The deployment includes a post-deployment script (`post-deploy.sh`) that automatically:
+1. Waits for the LDAP service to start
+2. Adds the users and groups defined in users.ldif to the LDAP directory
+
+The script runs automatically after deployment and requires no manual intervention.
+
+## Verification
+
+To verify everything is working correctly:
+
+1. **Test LDAP Server**:
+   ```bash
+   # Check LDAP users
+   docker exec sso-ldap ldapsearch -x -H ldap://localhost:389 \
+     -D "cn=admin,dc=example,dc=org" -w admin \
+     -b "dc=example,dc=org" "(objectClass=inetOrgPerson)"
+   ```
+
+2. **Test GitLab Login**:
+   - Access GitLab at http://sso-gitlab.local (use the port shown in deployment summary)
+   - Log in with LDAP credentials (e.g., username: john, password: password123)
 
 ## Troubleshooting
 
-### LDAP Connection Issues
+If you encounter issues:
 
-If GitLab can't connect to LDAP:
-
-1. **Check Container Communication**:
+1. **LDAP Connection Issues**:
    ```bash
-   docker exec -it sso-gitlab bash -c "ping sso-ldap.local"
-   ```
-
-2. **Verify LDAP Port**:
-   ```bash
-   docker exec -it sso-gitlab bash -c "nc -zv sso-ldap.local 389"
-   ```
-
-3. **Check LDAP Server Logs**:
-   ```bash
-   docker logs sso-ldap
-   ```
-
-### GitLab LDAP Configuration Issues
-
-If LDAP is running but authentication fails:
-
-1. **Check GitLab LDAP Configuration**:
-   ```bash
-   docker exec -it sso-gitlab gitlab-rake gitlab:ldap:check
-   ```
-
-2. **View GitLab Logs**:
-   ```bash
-   docker exec -it sso-gitlab tail -f /var/log/gitlab/gitlab-rails/production.log
-   ```
-
-## Custom User Management
-
-To add or modify users:
-
-1. Create or edit the LDIF file:
-   ```
-   gitlab-test-env/sso/ldap/ldif/users.ldif
-   ```
-
-2. Use the `ldapadd` or `ldapmodify` commands to update the LDAP directory:
-   ```bash
-   # Get the port number
-   export LDAP_PORT=$(docker port sso-ldap 389 | cut -d ':' -f 2)
+   # Check if LDAP users were loaded properly
+   docker exec sso-ldap ldapsearch -x -H ldap://localhost:389 \
+     -D "cn=admin,dc=example,dc=org" -w admin \
+     -b "dc=example,dc=org" "(uid=john)"
    
-   # Add new entries
-   ldapadd -x -H ldap://localhost:$LDAP_PORT -D "cn=admin,dc=example,dc=org" -w admin -f new_users.ldif
+   # Manually run the post-deployment script
+   ./sso/ldap/post-deploy.sh
    ```
 
-Alternatively, you can modify the LDIF file and redeploy the environment.
-
-## Advanced Configuration
-
-### Customizing GitLab LDAP Settings
-
-To modify how GitLab interacts with LDAP, edit `gitlab.rb` and adjust these settings:
-
-```ruby
-gitlab_rails['ldap_servers'] = {
-  'main' => {
-    # Change authentication requirements
-    'user_filter' => '(memberOf=cn=developers,ou=groups,dc=example,dc=org)',
-    
-    # Map additional attributes
-    'attributes' => {
-      'username' => ['uid'],
-      'email' => ['mail'],
-      'name' => 'cn',
-      'first_name' => 'givenName',
-      'last_name' => 'sn'
-    }
-  }
-}
-```
-
-After making changes, reconfigure GitLab:
-
-```bash
-docker exec -it sso-gitlab gitlab-ctl reconfigure
-```
-
-### Adding SSL/TLS
-
-For a more secure setup, modify both the LDAP and GitLab configurations to use TLS encryption.
+2. **GitLab LDAP Configuration**:
+   ```bash
+   # Verify GitLab LDAP configuration
+   docker exec sso-gitlab gitlab-rake gitlab:ldap:check
+   
+   # Check GitLab logs
+   docker exec sso-gitlab tail -f /var/log/gitlab/gitlab-rails/production.log
+   ```

@@ -1,7 +1,7 @@
 ## GitLab configuration with LDAP integration
 
 # Basic GitLab URL and host settings
-external_url 'http://ldap-gitlab.local'
+external_url 'http://sso-gitlab.local'
 # LDAP server configuration
 gitlab_rails['ldap_enabled'] = true
 gitlab_rails['prevent_ldap_sign_in'] = false
@@ -20,7 +20,7 @@ gitlab_rails['prevent_ldap_sign_in'] = false
 gitlab_rails['ldap_servers'] = {
   'main' => {
     'label' => 'LDAP',
-    'host' =>  'ldap-ldap.local',
+    'host' =>  'sso-ldap.local',
     'port' => 389,
     'uid' => 'uid',
     'bind_dn' => 'cn=admin,dc=example,dc=org',

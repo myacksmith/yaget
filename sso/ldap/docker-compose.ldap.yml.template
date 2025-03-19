@@ -20,14 +20,12 @@ services:
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/lib/ldap"
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/ldap/slapd.d"
       # Mount LDIF files for initial setup
-      - "./ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
+      - "/Users/ayacksmith/code/gitlab/gitlab-compose/sso/ldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
     networks:
       - "$NETWORK_NAME"
     ports:
       - "${LDAP_PORT:-389}:389"
       - "${LDAPS_PORT:-636}:636"
-    depends_on:
-      - ${DEPLOYMENT_NAME}-gitlab
   
 volumes:
   $DEPLOYMENT_NAME-$SERVICE_NAME-data:
