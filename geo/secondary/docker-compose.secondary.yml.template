@@ -1,5 +1,6 @@
 services:
   $SERVICE_NAME:
+    platform: linux/amd64
     image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
     container_name: "$CONTAINER_NAME"
     hostname: "$CONTAINER_NAME.local"
