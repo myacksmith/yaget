@@ -6,7 +6,7 @@ check_interval = 0
 
 [[runners]]
   name = "Docker Runner"
-  url = "http://runners-deployment-gitlab.local"
+  url = "http://runners-gitlab.local"
   token = "glrt-xxxxxxxxxxxxxxxxxxxx"
   executor = "docker"
   [runners.docker]

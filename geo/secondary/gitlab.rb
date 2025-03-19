@@ -1,13 +1,13 @@
 ## Secondary GitLab node configuration
 
 # Basic GitLab URL and host settings
-external_url 'http://geo-deployment-secondary.local'
-gitlab_rails['gitlab_host'] = 'geo-deployment-secondary.local'
+external_url 'http://geo-secondary.local'
+gitlab_rails['gitlab_host'] = 'geo-secondary.local'
 gitlab_rails['gitlab_port'] = 80
 gitlab_rails['gitlab_https'] = false
 
 # Configure as Geo secondary
-gitlab_rails['geo_node_name'] = 'geo-deployment-secondary'
+gitlab_rails['geo_node_name'] = 'geo-secondary'
 gitlab_rails['geo_secondary_role'] = true
 
 # Disable PostgreSQL as we'll connect to the primary's PostgreSQL
@@ -16,7 +16,7 @@ postgresql['enable'] = false
 # PostgreSQL connection to primary
 gitlab_rails['db_adapter'] = 'postgresql'
 gitlab_rails['db_encoding'] = 'unicode'
-gitlab_rails['db_host'] = 'geo-deployment-primary.local'
+gitlab_rails['db_host'] = 'geo-primary.local'
 gitlab_rails['db_port'] = 5432
 gitlab_rails['db_username'] = 'gitlab'
 gitlab_rails['db_password'] = 'gitlab'
@@ -27,7 +27,7 @@ geo_postgresql['enable'] = true
 geo_postgresql['listen_address'] = '*'
 
 # Redis connection to primary
-gitlab_rails['redis_host'] = 'geo-deployment-primary.local'
+gitlab_rails['redis_host'] = 'geo-primary.local'
 gitlab_rails['redis_port'] = 6379
 
 # GitLab Shell SSH port
@@ -41,7 +41,7 @@ prometheus['enable'] = true
 prometheus['listen_address'] = '0.0.0.0:9090'
 
 # Enable Geo Configuration
-gitlab_rails['geo_node_name'] = 'geo-deployment-secondary'
+gitlab_rails['geo_node_name'] = 'geo-secondary'
 gitlab_rails['geo_registry_replication_enabled'] = true
 gitlab_rails['geo_status_enabled'] = true
 

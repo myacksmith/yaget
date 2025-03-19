@@ -1,13 +1,13 @@
 ## Primary GitLab node configuration
 
 # Basic GitLab URL and host settings
-external_url 'http://geo-deployment-primary.local'
-gitlab_rails['gitlab_host'] = 'geo-deployment-primary.local'
+external_url 'http://geo-primary.local'
+gitlab_rails['gitlab_host'] = 'geo-primary.local'
 gitlab_rails['gitlab_port'] = 80
 gitlab_rails['gitlab_https'] = false
 
 # Configure as Geo primary
-gitlab_rails['geo_node_name'] = 'geo-deployment-primary'
+gitlab_rails['geo_node_name'] = 'geo-primary'
 gitlab_rails['geo_primary_role'] = true
 
 # PostgreSQL configuration

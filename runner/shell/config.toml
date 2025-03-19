@@ -6,7 +6,7 @@ check_interval = 0
 
 [[runners]]
   name = "Shell Runner"
-  url = "http://runners-deployment-gitlab.local"
+  url = "http://runners-gitlab.local"
   token = "glrt-xxxxxxxxxxxxxxxxxxxx"
   executor = "shell"
   shell = "bash"

@@ -1,4 +1,4 @@
-# GitLab Testing Environment System
+# GitLab Testing Environment
 
 A flexible system for GitLab support engineers to quickly set up, manage, and share testing environments without hardcoded configurations.
 
@@ -14,6 +14,7 @@ A flexible system for GitLab support engineers to quickly set up, manage, and sh
 - [Creating New Deployments](#creating-new-deployments)
   - [Adding New Services](#adding-new-services)
   - [Customizing Service Configuration](#customizing-service-configuration)
+  - [Post-Deployment Scripts](#post-deployment-scripts)
 - [Sharing Environments](#sharing-environments)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
@@ -28,18 +29,20 @@ This system provides a set of scripts to manage GitLab testing environments with
 - **Consistent naming** with deployment_name-service_name pattern
 - **Version control** with GitLab version selection
 - **Data persistence options** when destroying environments
+- **Post-deployment automation** for advanced setup tasks
 
 ## Directory Structure
 
 ```
-gitlab-test-env/
+gitlab-compose/
   deploy.sh                # Deployment script
   destroy.sh               # Teardown script
-  docker-compose.yml       # Base configuration template
+  docker-compose.yml.template  # Base configuration template
   deployment1-name/        # A deployment environment
     service1-name/         # A service within the deployment
-      docker-compose.service1-name.yml  # Optional custom compose file
+      docker-compose.service1-name.yml.template  # Optional custom template
       gitlab.rb            # Service-specific GitLab configuration
+      post-deploy.sh       # Optional post-deployment script
     service2-name/
       gitlab.rb
   deployment2-name/
@@ -51,8 +54,8 @@ gitlab-test-env/
 1. Clone this repository:
 
 ```bash
-git clone https://your-repo-url/gitlab-test-env.git
-cd gitlab-test-env
+git clone https://your-repo-url/gitlab-compose.git
+cd gitlab-compose
 ```
 
 2. Install dependencies:
@@ -61,11 +64,6 @@ cd gitlab-test-env
 # Check and install required dependencies
 ./install_dependencies.sh
 ```
-
-This script will verify you have:
-- Docker
-- Docker Compose V2
-- envsubst (part of gettext)
 
 3. Make the scripts executable (if not already):
 
@@ -87,10 +85,10 @@ Examples:
 
 ```bash
 # Deploy using the latest GitLab version
-./deploy.sh deployment1-name
+./deploy.sh basic
 
 # Deploy with a specific GitLab version
-./deploy.sh deployment1-name --version 15.11.3-ce.0
+./deploy.sh geo --version 15.11.3-ce.0
 ```
 
 The script will:
@@ -98,6 +96,7 @@ The script will:
 2. Discover all services within the deployment directory
 3. Deploy each service using the appropriate configuration
 4. Mount service-specific gitlab.rb files
+5. Run any post-deployment scripts found in service directories
 
 ### Destroying Environments
 
@@ -111,10 +110,10 @@ Examples:
 
 ```bash
 # Destroy and remove all data
-./destroy.sh deployment1-name
+./destroy.sh basic
 
 # Destroy but preserve data volumes for future use
-./destroy.sh deployment1-name --keep-data
+./destroy.sh geo --keep-data
 ```
 
 The script will:
@@ -146,25 +145,31 @@ sudo nano /etc/hosts
 
 To create a new deployment environment:
 
-1. Create a new directory under the gitlab-test-env directory:
+1. Create a new directory under the gitlab-compose directory:
 
 ```bash
-mkdir -p gitlab-test-env/my-new-deployment
+mkdir -p gitlab-compose/my-new-deployment
 ```
 
 2. Add service directories and their configurations:
 
 ```bash
-mkdir -p gitlab-test-env/my-new-deployment/gitlab-web
+mkdir -p gitlab-compose/my-new-deployment/gitlab-web
 ```
 
 3. Create the required gitlab.rb file:
 
 ```bash
-touch gitlab-test-env/my-new-deployment/gitlab-web/gitlab.rb
+touch gitlab-compose/my-new-deployment/gitlab-web/gitlab.rb
 ```
 
 4. Edit the gitlab.rb file with appropriate configuration
+
+5. (Optional) Create a custom template for the service:
+
+```bash
+touch gitlab-compose/my-new-deployment/gitlab-web/docker-compose.gitlab-web.yml.template
+```
 
 ### Adding New Services
 
@@ -173,20 +178,22 @@ To add a new service to an existing deployment:
 1. Create a new service directory:
 
 ```bash
-mkdir -p gitlab-test-env/existing-deployment/new-service
+mkdir -p gitlab-compose/existing-deployment/new-service
 ```
 
 2. Create the required gitlab.rb file:
 
 ```bash
-touch gitlab-test-env/existing-deployment/new-service/gitlab.rb
+touch gitlab-compose/existing-deployment/new-service/gitlab.rb
 ```
 
-3. (Optional) Create a custom docker-compose file if needed:
+3. (Optional) Create a custom docker-compose template if needed:
 
 ```bash
-touch gitlab-test-env/existing-deployment/new-service/docker-compose.new-service.yml
+touch gitlab-compose/existing-deployment/new-service/docker-compose.new-service.yml.template
 ```
+
+Refer to [EXAMPLE.md](./EXAMPLE.md) for a more complete example.
 
 ### Customizing Service Configuration
 
@@ -199,25 +206,48 @@ gitlab_rails['gitlab_shell_ssh_port'] = 2222
 # More configuration...
 ```
 
-2. **Advanced Configuration** - Create a custom docker-compose file:
+2. **Advanced Configuration** - Create a custom docker-compose template:
 
 ```yaml
 version: '3.8'
 
 services:
-  service-name:
-    # Inherit from the base compose file
-    extends:
-      file: ../../docker-compose.yml
-      service: ${SERVICE_NAME}
-    
-    # Add or override settings
+  $SERVICE_NAME:
     ports:
-      - "8080:80"
-      - "2222:22"
+      - "${HTTP_PORT:-8080}:80"
+      - "${SSH_PORT:-2222}:22"
     
     environment:
       ADDITIONAL_ENV: "value"
+```
+
+Refer to [TEMPLATE.md](./TEMPLATES.md) for a more complete example.
+
+### Post-Deployment Scripts
+
+You can add post-deployment automation by creating a `post-deploy.sh` script in a service directory:
+
+```bash
+touch gitlab-compose/my-deployment/my-service/post-deploy.sh
+chmod +x gitlab-compose/my-deployment/my-service/post-deploy.sh
+```
+
+This script will automatically run after all services are deployed. It's useful for:
+- Loading data into services
+- Setting up connections between services
+- Running configuration commands
+- Performing health checks
+
+Example post-deployment script:
+
+```bash
+#!/bin/bash
+# Load LDAP users after container starts
+echo "Configuring LDAP service..."
+sleep 5  # Wait for service to fully start
+docker exec my-deployment-ldap ldapadd -c -x -H ldap://localhost:389 \
+  -D "cn=admin,dc=example,dc=org" -w admin \
+  -f /container/service/slapd/assets/config/bootstrap/ldif/custom/users.ldif
 ```
 
 ## Sharing Environments
@@ -238,10 +268,10 @@ To share your testing environment with colleagues:
 
 ```bash
 # Clone the repository (if using Git)
-git clone https://your-repo-url/gitlab-test-env.git
+git clone https://your-repo-url/gitlab-compose.git
 
 # Deploy the environment
-cd gitlab-test-env
+cd gitlab-compose
 ./deploy.sh your-deployment-name --version 15.11.3-ce.0
 ```
 
@@ -276,12 +306,17 @@ cd gitlab-test-env
 
 2. **Services cannot communicate**:
    - Verify all services are on the same network: `docker network inspect <deployment_name>-network`
-   - Check hostname resolution: `docker exec <container_name> ping <other_container_name>`
+   - Check hostname resolution: `docker exec <container_name> ping <other_container_name>.local`
 
 3. **Deploy script fails**:
    - Ensure all directories exist
    - Check permissions on gitlab.rb files
    - Verify Docker and Docker Compose are properly installed
+
+4. **Post-deployment script issues**:
+   - Check script permissions (must be executable)
+   - Verify script path is correct
+   - Check for syntax errors in the script
 
 ### Getting Logs
 

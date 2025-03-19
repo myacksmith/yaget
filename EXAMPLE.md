@@ -12,8 +12,8 @@ First, let's create the necessary directories:
 
 ```bash
 # Create the deployment directory
-mkdir -p gitlab-test-env/geo-deployment/primary
-mkdir -p gitlab-test-env/geo-deployment/secondary
+mkdir -p gitlab-compose/geo/primary
+mkdir -p gitlab-compose/geo/secondary
 ```
 
 ### Step 2: Configure the Primary Node
@@ -22,17 +22,17 @@ Create a gitlab.rb file for the primary node:
 
 ```bash
 # Create gitlab.rb file
-touch gitlab-test-env/geo-deployment/primary/gitlab.rb
+touch gitlab-compose/geo/primary/gitlab.rb
 ```
 
-Edit the `gitlab-test-env/geo-deployment/primary/gitlab.rb` file with the following content:
+Edit the `gitlab-compose/geo/primary/gitlab.rb` file with the following content:
 
 ```ruby
 # Primary Geo node configuration
-external_url 'http://geo-deployment-primary.local'
+external_url 'http://geo-primary.local'
 
 # Enable Geo primary role
-gitlab_rails['geo_node_name'] = 'geo-deployment-primary'
+gitlab_rails['geo_node_name'] = 'geo-primary'
 gitlab_rails['gitlab_shell_ssh_port'] = 2222
 gitlab_rails['geo_primary_role'] = true
 
@@ -59,28 +59,28 @@ Create a gitlab.rb file for the secondary node:
 
 ```bash
 # Create gitlab.rb file
-touch gitlab-test-env/geo-deployment/secondary/gitlab.rb
+touch gitlab-compose/geo/secondary/gitlab.rb
 ```
 
-Edit the `gitlab-test-env/geo-deployment/secondary/gitlab.rb` file with the following content:
+Edit the `gitlab-compose/geo/secondary/gitlab.rb` file with the following content:
 
 ```ruby
 # Secondary Geo node configuration
-external_url 'http://geo-deployment-secondary.local'
+external_url 'http://geo-secondary.local'
 
 # Configure as secondary node
-gitlab_rails['geo_node_name'] = 'geo-deployment-secondary'
+gitlab_rails['geo_node_name'] = 'geo-secondary'
 gitlab_rails['gitlab_shell_ssh_port'] = 2223
 gitlab_rails['geo_secondary_role'] = true
 
 # PostgreSQL connection to primary
-gitlab_rails['db_host'] = 'geo-deployment-primary'
+gitlab_rails['db_host'] = 'geo-primary'
 gitlab_rails['db_port'] = 5432
 gitlab_rails['db_username'] = 'gitlab'
 gitlab_rails['db_password'] = 'gitlab'
 
 # Redis connection to primary
-gitlab_rails['redis_host'] = 'geo-deployment-primary'
+gitlab_rails['redis_host'] = 'geo-primary'
 
 # Tracking database settings
 geo_postgresql['enable'] = true
@@ -92,10 +92,10 @@ geo_postgresql['listen_address'] = '*'
 Since the secondary node needs custom port mappings, let's create a custom template file:
 
 ```bash
-touch gitlab-test-env/geo-deployment/secondary/docker-compose.secondary.yml.template
+touch gitlab-compose/geo/secondary/docker-compose.secondary.yml.template
 ```
 
-Edit the `gitlab-test-env/geo-deployment/secondary/docker-compose.secondary.yml.template` file:
+Edit the `gitlab-compose/geo/secondary/docker-compose.secondary.yml.template` file:
 
 ```yaml
 version: '3.8'
@@ -114,14 +114,14 @@ services:
 Now deploy the Geo environment:
 
 ```bash
-./deploy.sh geo-deployment --version 15.11.3-ee.0
+./deploy.sh geo --version 15.11.3-ee.0
 ```
 
 The script will:
 1. Create a Docker network for the deployment
 2. Discover the primary and secondary services
 3. Deploy them with the appropriate configurations
-4. Set up the container names as geo-deployment-primary and geo-deployment-secondary
+4. Set up the container names as geo-primary and geo-secondary
 5. Assign incremental port numbers to each service
 
 ### Step 6: Update Your Hosts File
@@ -133,8 +133,8 @@ Before you can access the services, you need to manually update your hosts file:
 sudo nano /etc/hosts
 
 # Add these entries:
-127.0.0.1    geo-deployment-primary.local
-127.0.0.1    geo-deployment-secondary.local
+127.0.0.1    geo-primary.local
+127.0.0.1    geo-secondary.local
 ```
 
 This allows you to access the services using their `.local` domain names from your host machine.
@@ -149,7 +149,7 @@ After deployment, you need to set up Geo replication:
 
 ```bash
 # SSH into the primary node
-docker exec -it geo-deployment-primary bash
+docker exec -it geo-primary bash
 
 # Generate Geo token and save it
 gitlab-rails runner "puts Gitlab::Geo::GeoNodes.new.generate_token"
@@ -171,10 +171,10 @@ When you're done testing, destroy the environment:
 
 ```bash
 # To completely remove the environment:
-./destroy.sh geo-deployment
+./destroy.sh geo
 
 # Or, to preserve data for future testing:
-./destroy.sh geo-deployment --keep-data
+./destroy.sh geo --keep-data
 ```
 
 ## Creating a Custom Service
@@ -184,7 +184,7 @@ Let's say you want to add a specific service to another deployment:
 ### Step 1: Create the Service Directory
 
 ```bash
-mkdir -p gitlab-test-env/custom-deployment/gitlab-pages
+mkdir -p gitlab-compose/custom/gitlab-pages
 ```
 
 ### Step 2: Configure the Service
@@ -192,14 +192,14 @@ mkdir -p gitlab-test-env/custom-deployment/gitlab-pages
 Create a gitlab.rb file:
 
 ```bash
-touch gitlab-test-env/custom-deployment/gitlab-pages/gitlab.rb
+touch gitlab-compose/custom/gitlab-pages/gitlab.rb
 ```
 
-Edit the `gitlab-test-env/custom-deployment/gitlab-pages/gitlab.rb` file:
+Edit the `gitlab-compose/custom/gitlab-pages/gitlab.rb` file:
 
 ```ruby
 # GitLab Pages configuration
-external_url 'http://custom-deployment-gitlab-pages.local'
+external_url 'http://custom-gitlab-pages.local'
 
 # Enable GitLab Pages
 pages_external_url 'http://pages.example.com'
@@ -213,10 +213,10 @@ gitlab_rails['gitlab_shell_ssh_port'] = 2224
 ### Step 3: Create a Custom Docker Compose File
 
 ```bash
-touch gitlab-test-env/custom-deployment/gitlab-pages/docker-compose.gitlab-pages.yml
+touch gitlab-compose/custom/gitlab-pages/docker-compose.gitlab-pages.yml
 ```
 
-Edit the `gitlab-test-env/custom-deployment/gitlab-pages/docker-compose.gitlab-pages.yml` file:
+Edit the `gitlab-compose/custom/gitlab-pages/docker-compose.gitlab-pages.yml` file:
 
 ```yaml
 version: '3.8'
@@ -234,11 +234,11 @@ services:
 ### Step 4: Deploy and Test
 
 ```bash
-./deploy.sh custom-deployment
+./deploy.sh custom
 
 # Remember to manually update your hosts file
 sudo nano /etc/hosts
-# Add: 127.0.0.1    custom-deployment-gitlab-pages.local
+# Add: 127.0.0.1    custom-gitlab-pages.local
 ```
 
 ## Sharing Your Deployment
@@ -247,23 +247,23 @@ To share your deployment with team members:
 
 1. Add all required files to your version control:
    ```bash
-   git add gitlab-test-env/geo-deployment/
+   git add gitlab-compose/geo/
    git commit -m "Add Geo deployment configuration"
    git push origin main
    ```
 
 2. Document the usage in a deployment-specific README:
    ```bash
-   touch gitlab-test-env/geo-deployment/README.md
+   touch gitlab-compose/geo/README.md
    ```
 
 3. Include any special setup steps, environment variables or configuration notes in the README.
 
 4. Your colleagues can now deploy the same environment:
    ```bash
-   git clone https://your-repo-url/gitlab-test-env.git
-   cd gitlab-test-env
-   ./deploy.sh geo-deployment
+   git clone https://your-repo-url/gitlab-compose.git
+   cd gitlab-compose
+   ./deploy.sh geo
    ```
 
 By following these examples, you can create and share various testing environments for different GitLab configurations.
