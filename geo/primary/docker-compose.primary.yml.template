@@ -1,3 +1,4 @@
+
 services:
   $SERVICE_NAME:
     platform: linux/amd64
@@ -7,30 +8,33 @@ services:
     restart: unless-stopped
     environment:
       GITLAB_OMNIBUS_CONFIG: "from_file('/etc/gitlab/gitlab.rb')"
+      # Add any common environment variables here
     volumes:
+      # Mount the service-specific gitlab.rb file
       - "$CONFIG_PATH/gitlab.rb:/etc/gitlab/gitlab.rb:ro"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/gitlab"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-logs:/var/log/gitlab"
-      - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/opt/gitlab"
-      # Mount skip-auto-reconfigure file
-      - "${DEPLOYMENT_DIR}/${SERVICE_NAME}/skip-auto-reconfigure:/etc/gitlab/skip-auto-reconfigure:ro"
+      # Mount license life
+      - "$CONFI_PATH/Gitlab.gitlab-license:/etc/gitlab/Gitlab.gitlab-license:ro"
+      # Data volumes - these will be prefixed with the deployment and service names
+      - "$CONFIG_PATH/$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/gitlab"
+      - "$CONFIG_PATH/$DEPLOYMENT_NAME-$SERVICE_NAME-logs:/var/log/gitlab"
+      - "$CONFIG_PATH/$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/opt/gitlab"
     networks:
       - "$NETWORK_NAME"
-    # Custom ports for secondary node
+    # Default ports with incremental offsets per service
     ports:
-      - "${HTTP_PORT:-8081}:80"
-      - "${HTTPS_PORT:-8443}:443"
-      - "${SSH_PORT:-2223}:22"
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${SSH_PORT:-22}:22"
     shm_size: '256m'
+    # Add healthcheck for better orchestration
     healthcheck:
       test: ["CMD", "/opt/gitlab/bin/gitlab-healthcheck", "--fail", "--max-time", "10"]
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 120s  # Longer start period for secondary node
-    configs:
-      - source: skip_auto_reconfigure
-        target: /etc/gitlab/skip-auto-reconfigure
+      start_period: 60s
+
+# Define volumes to persist data
 volumes:
   $DEPLOYMENT_NAME-$SERVICE_NAME-config:
     name: "$DEPLOYMENT_NAME-$SERVICE_NAME-config"
@@ -39,10 +43,7 @@ volumes:
   $DEPLOYMENT_NAME-$SERVICE_NAME-data:
     name: "$DEPLOYMENT_NAME-$SERVICE_NAME-data"
 
+# Define the network to allow services to communicate
 networks:
   $NETWORK_NAME:
     external: true
-
-configs:
-  skip_auto_reconfigure:
-    file: ./skip-auto-reconfigure
