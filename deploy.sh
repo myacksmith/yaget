@@ -303,4 +303,4 @@ for service in "${DEPLOYED_SERVICES[@]}"; do
 done
 
 log "Get the root password for your gitlab instance with:"
-log "  docker exec -it CONTAINER_NAME grep 'Password: ' /etc/gitlab/initial_root_password "
+echo "  docker exec -it CONTAINER_NAME grep 'Password: ' /etc/gitlab/initial_root_password "
