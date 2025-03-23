@@ -301,3 +301,6 @@ log "Remember to update your /etc/hosts file with entries for each service:"
 for service in "${DEPLOYED_SERVICES[@]}"; do
   echo "  127.0.0.1    ${DEPLOYMENT_NAME}-${service}.local"
 done
+
+log "Get the root password for your gitlab instance with:"
+log "  docker exec -it CONTAINER_NAME grep 'Password: ' /etc/gitlab/initial_root_password "
