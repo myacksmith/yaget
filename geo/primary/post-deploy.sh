@@ -36,3 +36,9 @@ check_readiness() {
   echo "Timeout reached. GitLab is not ready after $TIMEOUT seconds."
   exit 1
 }
+
+# Set up primary node as geo primary
+check_readiness 
+docker exec $CONTAINER_NAME gitlab-ctl set-geo-primary
+
+
