@@ -14,7 +14,7 @@ services:
       # Add any common environment variables here
     volumes:
       # Mount the service-specific gitlab.rb file
-      - "$CONFIG_PATH:/etc/gitlab/gitlab.rb:ro"
+      - "$CONFIG_PATH/gitlab.rb:/etc/gitlab/gitlab.rb:ro"
       # Data volumes - these will be prefixed with the deployment and service names
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/gitlab"
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-logs:/var/log/gitlab"

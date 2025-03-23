@@ -143,7 +143,7 @@ process_compose_file() {
   export CONTAINER_NAME="${container_name}"
   export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
   export NETWORK_NAME="${NETWORK_NAME}"
-  export CONFIG_PATH="${service_dir}/gitlab.rb"
+  export CONFIG_PATH="${service_dir}"
   export GITLAB_VERSION="${GITLAB_VERSION}"
   export SERVICE_DIR="${service_dir}"
   export HTTP_PORT="${http_port}"
