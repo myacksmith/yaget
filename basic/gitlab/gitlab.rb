@@ -17,9 +17,6 @@ puma['max_threads'] = 4
 postgresql['shared_buffers'] = '512MB'
 postgresql['max_worker_processes'] = 4
 
-# Monitoring
-prometheus_monitoring['enable'] = false
-
 ## Performance tweaks
 gitlab_rails['env'] = {
   'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000'
@@ -30,16 +27,10 @@ gitlab_rails['gitlab_default_projects_features_container_registry'] = false
 gitlab_pages['enable'] = false
 registry['enable'] = false
 gitlab_kas['enable'] = false
-sentinel['enable'] = false
 
 # Cache configuration (memory savings)
 redis['maxmemory'] = '256mb'
 redis['maxmemory_policy'] = 'allkeys-lru'
-
-# Logging settings
-logging['logrotate_frequency'] = 'daily'
-logging['logrotate_size'] = '10M'
-logging['logrotate_maxsize'] = '100M'
 
 # Set time zone to UTC for consistency
 gitlab_rails['time_zone'] = 'UTC'
