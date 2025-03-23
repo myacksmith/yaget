@@ -17,6 +17,7 @@ NC='\033[0m' # No Color
 GITLAB_VERSION="latest"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_TEMPLATE_FILE="${SCRIPT_DIR}/docker-compose.yml.template"
+DEFAULT_ENV_FILE="${SCRIPT_DIR}/.env"
 NETWORK_NAME=""
 
 # Function to display usage information
@@ -60,21 +61,6 @@ check_directory() {
     exit 1
   fi
 }
-
-# Check if envsubst is installed
-if ! command -v envsubst &> /dev/null; then
-  log_error "envsubst is not installed. Please install it (part of gettext package)."
-  
-  # Provide installation instructions based on OS
-  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "For Debian/Ubuntu: sudo apt-get install gettext"
-    echo "For RedHat/CentOS: sudo yum install gettext"
-  elif [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "For MacOS: brew install gettext && brew link --force gettext"
-  fi
-  
-  exit 1
-fi
 
 # Print ASCII art banner
 echo ""
@@ -130,6 +116,64 @@ if ! docker network inspect "${NETWORK_NAME}" &>/dev/null; then
   docker network create "${NETWORK_NAME}"
 fi
 
+# Function to process the compose file using envsubst for all files
+process_compose_file() {
+  local source_file="$1"
+  local env_file="$2"
+  local service_name="$3"
+  local container_name="$4"
+  local service_dir="$5"
+  local service_index="$6"
+  
+  # Create a temporary file
+  local temp_file=$(mktemp)
+  
+  # Calculate port offsets based on service index
+  # and generate a random port range to avoid collisions
+  local port_base=$((10000 + (RANDOM % 5000)))
+  local http_port=$((port_base + service_index))
+  local https_port=$((port_base + 100 + service_index))
+  local ssh_port=$((port_base + 200 + service_index))
+  
+  # Set variables for envsubst - export essential variables first
+  set -a  # Export all variables
+  
+  # 1. Export essential script-defined variables first
+  export SERVICE_NAME="${service_name}"
+  export CONTAINER_NAME="${container_name}"
+  export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
+  export NETWORK_NAME="${NETWORK_NAME}"
+  export CONFIG_PATH="${service_dir}/gitlab.rb"
+  export GITLAB_VERSION="${GITLAB_VERSION}"
+  export SERVICE_DIR="${service_dir}"
+  export HTTP_PORT="${http_port}"
+  export HTTPS_PORT="${https_port}"
+  export SSH_PORT="${ssh_port}"
+  
+  # 2. Load default environment if it exists
+  if [ -f "${DEFAULT_ENV_FILE}" ]; then
+    source "${DEFAULT_ENV_FILE}"
+  fi
+  
+  # 3. Load service-specific environment file if it exists (overrides defaults)
+  if [ -f "${env_file}" ]; then
+    source "${env_file}"
+    log "Using environment variables from ${env_file}"
+  fi
+  
+  set +a  # Stop exporting
+  
+  # Process the file with envsubst
+  envsubst < "${source_file}" > "${temp_file}" || {
+    log_error "Failed to process file: ${source_file}"
+    rm -f "${temp_file}"
+    return 1
+  }
+  
+  # Return the path to the processed file
+  echo "${temp_file}"
+}
+
 # Find all service directories
 SERVICE_DIRS=$(find "${DEPLOYMENT_DIR}" -mindepth 1 -maxdepth 1 -type d | sort)
 
@@ -146,6 +190,7 @@ deploy_service() {
   local container_name="${DEPLOYMENT_NAME}-${service_name}"
   local custom_template_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml.template"
   local custom_compose_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml"
+  local service_env_file="${service_dir}/.env"
   local template_file="${BASE_TEMPLATE_FILE}"
   
   log "Deploying service: ${service_name} (index: ${service_index})"
@@ -155,29 +200,9 @@ deploy_service() {
     log "Using custom template file: ${custom_template_file}"
     template_file="${custom_template_file}"
   elif [ -f "${custom_compose_file}" ]; then
-    # For backward compatibility with non-template compose files
+    # For files without .template extension
     log "Using custom compose file: ${custom_compose_file}"
-    
-    # Create a temporary compose file with environment variables expanded
-    local temp_compose_file=$(mktemp)
-    
-    # Process the compose file and expand variables
-    eval "cat <<EOF
-$(cat "${custom_compose_file}")
-EOF" > "${temp_compose_file}"
-    
-    # Use the processed compose file
-    docker compose -f "${temp_compose_file}" -p "${DEPLOYMENT_NAME}" up -d || {
-      rm -f "${temp_compose_file}"
-      log_error "Failed to deploy service ${service_name}"
-      return 1
-    }
-    
-    # Clean up the temporary file
-    rm -f "${temp_compose_file}"
-    
-    log_success "Service ${service_name} deployed successfully"
-    return 0
+    template_file="${custom_compose_file}"
   else
     log "Using base template file: ${BASE_TEMPLATE_FILE}"
   fi
@@ -187,53 +212,24 @@ EOF" > "${temp_compose_file}"
     log_warn "No gitlab.rb file found for service ${service_name}"
   fi
   
-  # Calculate port offsets based on service index
-  # and generate a random port range to avoid collisions
-  local port_base=$((10000 + (RANDOM % 5000)))
-  local http_port=$((port_base + service_index))
-  local https_port=$((port_base + 100+ service_index))
-  local ssh_port=$((port_base + 200 + service_index))
-  
-  # Create a temporary compose file with rendered template
-  local temp_compose_file=$(mktemp)
-  
-  # Export all variables needed for envsubst
-  export DEPLOYMENT_DIR
-  export SERVICE_NAME="${service_name}"
-  export GITLAB_VERSION="${GITLAB_VERSION}"
-  export CONTAINER_NAME="${container_name}"
-  export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
-  export NETWORK_NAME="${NETWORK_NAME}"
-  export CONFIG_PATH="${service_dir}/gitlab.rb"
-  export HTTP_PORT="${http_port}"
-  export HTTPS_PORT="${https_port}"
-  export SSH_PORT="${ssh_port}"
-  
-  # Render the template using envsubst
-  envsubst < "${template_file}" > "${temp_compose_file}" || {
-    rm -f "${temp_compose_file}"
-    log_error "Failed to render template"
-    return 1
-  }
-  
-  # Deploy the service using docker compose
-  if [ -s "${temp_compose_file}" ]; then
-    docker compose -f "${temp_compose_file}" -p "${DEPLOYMENT_NAME}" up -d || {
-      rm -f "${temp_compose_file}"
-      log_error "Failed to deploy service ${service_name}"
-      return 1
-    }
-    
-    # Clean up the temporary file
-    rm -f "${temp_compose_file}"
-    
-    log_success "Service ${service_name} deployed successfully"
-  else
-    rm -f "${temp_compose_file}"
-    log_error "Generated compose file is empty"
+  # Process the template and get the path to the processed file
+  local processed_compose_file=$(process_compose_file "${template_file}" "${service_env_file}" "${service_name}" "${container_name}" "${service_dir}" "${service_index}")
+  if [ $? -ne 0 ]; then
+    log_error "Failed to process template for service ${service_name}"
     return 1
   fi
   
+  # Deploy the service using docker compose
+  # No need for --env-file as we've already exported the variables
+  if ! docker compose -f "${processed_compose_file}" -p "${DEPLOYMENT_NAME}" up -d; then
+    log_error "Failed to deploy service ${service_name}"
+    rm -f "${processed_compose_file}"
+    return 1
+  fi
+  
+  # Clean up the temporary file
+  rm -f "${processed_compose_file}"
+  log_success "Service ${service_name} deployed successfully"
   return 0
 }
 
@@ -279,6 +275,12 @@ log "Deployed Services:"
 
 for service in "${DEPLOYED_SERVICES[@]}"; do
   log "  - ${service} (container: ${DEPLOYMENT_NAME}-${service}, hostname: ${DEPLOYMENT_NAME}-${service}.local)"
+
+  # Display environment file info
+  env_file="${DEPLOYMENT_DIR}/${service}/.env"
+  if [ -f "${env_file}" ]; then
+    log "     Environment file: ${env_file}"
+  fi
 
   # Attempt to find the random exposed ports
   if docker port "${DEPLOYMENT_NAME}-${service}" &>/dev/null; then
