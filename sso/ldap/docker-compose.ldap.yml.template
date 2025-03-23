@@ -1,5 +1,5 @@
 services:
-  $SERVICE_NAME:
+  $DEPLOYMENT_NAME-$SERVICE_NAME:
     image: "osixia/openldap:1.5.0"
     container_name: "$CONTAINER_NAME"
     hostname: "$CONTAINER_NAME.local"
@@ -20,7 +20,7 @@ services:
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-data:/var/lib/ldap"
       - "$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/ldap/slapd.d"
       # Mount LDIF files for initial setup
-      - "/Users/ayacksmith/code/gitlab/gitlab-compose/sso/ldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
+      - "/Users/ayacksmith/gitlab/gitlab-compose/sso/ldap/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
     networks:
       - "$NETWORK_NAME"
     ports:

@@ -1,10 +1,9 @@
-version: '3.8'
-
 # Base docker-compose file for GitLab deployment
 # This file defines common service configuration
 
 services:
-  $SERVICE_NAME:
+  $DEPLOYMENT_NAME-$SERVICE_NAME:
+    platform: linux/amd64
     image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
     container_name: "$CONTAINER_NAME"
     hostname: "$CONTAINER_NAME.local"
