@@ -36,7 +36,7 @@ sso/
 ├── gitlab/
 │   └── gitlab.rb
 └── ldap/
-    ├── docker-compose.ldap.yml.template
+    ├── docker-compose.ldap.template
     ├── ldif/
     │   └── users.ldif
     └── post-deploy.sh
@@ -98,7 +98,7 @@ docker exec sso-ldap ldapadd -c -x -H ldap://localhost:389 \
 
 All examples can be modified by:
 
-1. Creating custom templates in `your-deployment/service-name/docker-compose.service-name.yml.template`
+1. Creating custom templates in `your-deployment/service-name/docker-compose.service-name.template`
 2. Writing post-deployment scripts in `your-deployment/service-name/post-deploy.sh`
 3. Adjusting GitLab configurations in `your-deployment/service-name/gitlab.rb`
 

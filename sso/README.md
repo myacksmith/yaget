@@ -16,7 +16,7 @@ sso/
 ├── gitlab/
 │   └── gitlab.rb                # GitLab configuration with LDAP settings
 └── ldap/
-    ├── docker-compose.ldap.yml.template  # LDAP service template
+    ├── docker-compose.ldap.template  # LDAP service template
     ├── ldif/                    # LDIF files directory
     │   └── users.ldif           # User definitions for LDAP
     └── post-deploy.sh           # Post-deployment script for LDAP

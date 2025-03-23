@@ -40,10 +40,10 @@ gitlab-compose/
   deploy.sh                # Deployment script
   destroy.sh               # Teardown script
   .env                     # Default environment variables
-  docker-compose.yml.template  # Base configuration template
+  docker-compose.template  # Base configuration template
   deployment1-name/        # A deployment environment
     service1-name/         # A service within the deployment
-      docker-compose.service1-name.yml.template  # Optional custom template
+      docker-compose.service1-name.template  # Optional custom template
       gitlab.rb            # Service-specific GitLab configuration
       .env                 # Optional service-specific environment variables
       post-deploy.sh       # Optional post-deployment script
@@ -172,7 +172,7 @@ touch gitlab-compose/my-new-deployment/gitlab-web/gitlab.rb
 5. (Optional) Create a custom template for the service:
 
 ```bash
-touch gitlab-compose/my-new-deployment/gitlab-web/docker-compose.gitlab-web.yml.template
+touch gitlab-compose/my-new-deployment/gitlab-web/docker-compose.gitlab-web.template
 ```
 
 ### Adding New Services
@@ -194,7 +194,7 @@ touch gitlab-compose/existing-deployment/new-service/gitlab.rb
 3. (Optional) Create a custom docker-compose template if needed:
 
 ```bash
-touch gitlab-compose/existing-deployment/new-service/docker-compose.new-service.yml.template
+touch gitlab-compose/existing-deployment/new-service/docker-compose.new-service.template
 ```
 
 Refer to [EXAMPLE.md](./EXAMPLE.md) for a more complete example.

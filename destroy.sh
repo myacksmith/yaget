@@ -131,9 +131,9 @@ destroy_service() {
   local service_name=$(basename "${service_dir}")
   local container_name="${DEPLOYMENT_NAME}-${service_name}"
   local custom_compose_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml"
-  local custom_template_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml.template"
+  local custom_template_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.template"
   local compose_file="${SCRIPT_DIR}/docker-compose.yml"
-  local template_file="${SCRIPT_DIR}/docker-compose.yml.template"
+  local template_file="${SCRIPT_DIR}/docker-compose.template"
   local volumes_flag=""
   
   if [ "${KEEP_DATA}" = false ]; then

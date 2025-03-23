@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Default values
 GITLAB_VERSION="latest"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BASE_TEMPLATE_FILE="${SCRIPT_DIR}/docker-compose.yml.template"
+BASE_TEMPLATE_FILE="${SCRIPT_DIR}/docker-compose.template"
 DEFAULT_ENV_FILE="${SCRIPT_DIR}/.env"
 NETWORK_NAME=""
 
@@ -188,7 +188,7 @@ deploy_service() {
   local service_name=$(basename "${service_dir}")
   local service_index="$2"  # Index of this service in the deployment
   local container_name="${DEPLOYMENT_NAME}-${service_name}"
-  local custom_template_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml.template"
+  local custom_template_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.template"
   local custom_compose_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml"
   local service_env_file="${service_dir}/.env"
   local template_file="${BASE_TEMPLATE_FILE}"

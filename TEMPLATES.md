@@ -4,7 +4,7 @@ This document provides a reference for creating and customizing templates used i
 
 ## Base Docker Compose Template
 
-The base `docker-compose.yml.template` file defines the standard configuration for a GitLab service.
+The base `docker-compose.template` file defines the standard configuration for a GitLab service.
 
 ### Available Variables
 
@@ -42,7 +42,7 @@ ports:
 
 ## Custom Docker Compose Templates
 
-You can create custom templates for specific services by adding a file named `docker-compose.service-name.yml.template` in the service directory.
+You can create custom templates for specific services by adding a file named `docker-compose.service-name.template` in the service directory.
 
 ### Example: Custom Template for LDAP
 
