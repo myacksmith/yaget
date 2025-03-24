@@ -128,13 +128,6 @@ process_compose_file() {
   # Create a temporary file
   local temp_file=$(mktemp)
   
-  # Calculate port offsets based on service index
-  # and generate a random port range to avoid collisions
-  local port_base=$((10000 + (RANDOM % 5000)))
-  local http_port=$((port_base + service_index))
-  local https_port=$((port_base + 100 + service_index))
-  local ssh_port=$((port_base + 200 + service_index))
-  
   # Set variables for envsubst - export essential variables first
   set -a  # Export all variables
   
@@ -146,10 +139,7 @@ process_compose_file() {
   export CONFIG_PATH="${service_dir}"
   export GITLAB_VERSION="${GITLAB_VERSION}"
   export SERVICE_DIR="${service_dir}"
-  export HTTP_PORT="${http_port}"
-  export HTTPS_PORT="${https_port}"
-  export SSH_PORT="${ssh_port}"
-  
+
   # 2. Load default environment if it exists
   if [ -f "${DEFAULT_ENV_FILE}" ]; then
     source "${DEFAULT_ENV_FILE}"
@@ -245,7 +235,7 @@ for service_dir in ${SERVICE_DIRS}; do
     log_warn "Failed to deploy service $(basename "${service_dir}")"
     FAILURE=1
   fi
-  # Increment service index for port assignment
+  # Increment service index for reference
   SERVICE_INDEX=$((SERVICE_INDEX + 1))
 done
 
@@ -286,7 +276,18 @@ for service in "${DEPLOYED_SERVICES[@]}"; do
   if docker port "${DEPLOYMENT_NAME}-${service}" &>/dev/null; then
     log "     Exposed Ports:"
     docker port "${DEPLOYMENT_NAME}-${service}" | while read -r port_mapping; do
-      log "       $port_mapping"
+      # Show service:container port mapping
+      container_port=$(echo "$port_mapping" | awk -F '->' '{print $2}' | tr -d ' ')
+      host_port=$(echo "$port_mapping" | awk -F '->' '{print $1}')
+
+      case "$container_port" in
+        "80/tcp") service_name="HTTP" ;;
+        "443/tcp") service_name="HTTPS" ;;
+        "22/tcp") service_name="SSH" ;;
+        *) service_name="Service" ;;
+      esac
+
+      log "       ${service_name}: ${host_port} -> ${container_port}"
     done
   fi
 done

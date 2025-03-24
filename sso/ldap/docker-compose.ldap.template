@@ -24,8 +24,8 @@ services:
     networks:
       - "$NETWORK_NAME"
     ports:
-      - "${LDAP_PORT:-389}:389"
-      - "${LDAPS_PORT:-636}:636"
+      - "${LDAP_PORT:-}:389"
+      - "${LDAPS_PORT:-}:636"
   
 volumes:
   $DEPLOYMENT_NAME-$SERVICE_NAME-data:
