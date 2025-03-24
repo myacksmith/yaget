@@ -1,19 +1,14 @@
 # Example GitLab Test Deployments
 
-This document provides examples of various GitLab test environments you can create using this system.
+This document provides examples of GitLab test environments you can create with this system.
 
 ## Basic Standalone GitLab
-
-A simple standalone GitLab instance for basic testing:
 
 ```
 basic/
 ├── gitlab/
 │   └── gitlab.rb
-└── README.md
 ```
-
-### Configuration
 
 **gitlab.rb**:
 ```ruby
@@ -21,85 +16,60 @@ external_url 'http://basic-gitlab.local'
 gitlab_rails['gitlab_shell_ssh_port'] = 2222
 ```
 
-### Usage
-
+**Usage**:
 ```bash
 ./deploy.sh basic
+# Or with specific version
+./deploy.sh basic --version 15.11.3-ce.0
 ```
 
-## LDAP/SSO Integration
-
-GitLab with LDAP authentication for SSO testing:
+## LDAP Integration
 
 ```
 sso/
 ├── gitlab/
 │   └── gitlab.rb
+│   └── .env  # Optional environment overrides
 └── ldap/
-    ├── docker-compose.ldap.template
-    ├── ldif/
-    │   └── users.ldif
-    └── post-deploy.sh
+    ├── docker-compose.ldap.template  # Custom template
+    └── post-deploy.sh  # Post-deployment automation
 ```
 
-### Configuration
-
-**gitlab/gitlab.rb**:
-```ruby
-external_url 'http://sso-gitlab.local'
-gitlab_rails['ldap_enabled'] = true
-gitlab_rails['ldap_servers'] = {
-  'main' => {
-    'label' => 'LDAP',
-    'host' => 'sso-ldap.local',
-    'port' => 389,
-    'bind_dn' => 'cn=admin,dc=example,dc=org',
-    'password' => 'admin',
-    'base' => 'dc=example,dc=org',
-    'user_filter' => ''
-  }
-}
+**ldap/docker-compose.ldap.template**:
+```yaml
+services:
+  $SERVICE_NAME:
+    image: "osixia/openldap:1.5.0"
+    environment:
+      - LDAP_DOMAIN=example.org
+      - LDAP_ADMIN_PASSWORD=${LDAP_PASSWORD:-admin}
+    volumes:
+      - "${SERVICE_DIR}/ldif:/bootstrap/ldif/custom"
+    ports:
+      - "${LDAP_PORT:-389}:389"
 ```
 
-**ldap/ldif/users.ldif**:
-```ldif
-# Base domain
-dn: dc=example,dc=org
-objectClass: dcObject
-objectClass: organization
-o: Example Organization
-dc: example
-
-# Users
-dn: uid=john,ou=users,dc=example,dc=org
-objectClass: inetOrgPerson
-uid: john
-...
+**gitlab/.env**:
+```
+# Override default variables
+GITLAB_SMTP_ENABLED=true
 ```
 
-**ldap/post-deploy.sh**:
-```bash
-#!/bin/bash
-# Wait for LDAP to be ready
-sleep 5
-# Add user entries
-docker exec sso-ldap ldapadd -c -x -H ldap://localhost:389 \
-  -D "cn=admin,dc=example,dc=org" -w admin \
-  -f /container/service/slapd/assets/config/bootstrap/ldif/custom/users.ldif
-```
+## Port Allocation
 
-### Usage
+Ports are assigned automatically:
+- Base port uses a random range (10000-15000)
+- Service index offsets prevent conflicts between services
+- HTTP: base + service_index
+- HTTPS: base + 100 + service_index
+- SSH: base + 200 + service_index
+
+## Destroying Environments
 
 ```bash
-./deploy.sh sso
+# Destroy and remove all data
+./destroy.sh deployment-name
+
+# Destroy but preserve data volumes
+./destroy.sh deployment-name --keep-data
 ```
-
-## Customizing Examples
-
-All examples can be modified by:
-
-1. Creating custom templates in `your-deployment/service-name/docker-compose.service-name.template`
-2. Writing post-deployment scripts in `your-deployment/service-name/post-deploy.sh`
-3. Adjusting GitLab configurations in `your-deployment/service-name/gitlab.rb`
-
-Port allocation is automatic and will be displayed in the deployment summary.

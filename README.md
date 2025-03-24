@@ -1,371 +1,150 @@
-# GitLab Testing Environment
+# GitLab Compose
 
-A flexible system for GitLab support engineers to quickly set up, manage, and share testing environments without hardcoded configurations.
+A flexible Docker Compose-based system for deploying and managing multiple GitLab test environments.
 
-## Table of Contents
+## Features
 
-- [Overview](#overview)
-- [Directory Structure](#directory-structure)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Deploying Environments](#deploying-environments)
-  - [Destroying Environments](#destroying-environments)
-  - [Accessing Services](#accessing-services)
-- [Creating New Deployments](#creating-new-deployments)
-  - [Adding New Services](#adding-new-services)
-  - [Environment Variable Customization](#environment-variable-customization)
-  - [Customizing Service Configuration](#customizing-service-configuration)
-  - [Post-Deployment Scripts](#post-deployment-scripts)
-- [Sharing Environments](#sharing-environments)
-- [Best Practices](#best-practices)
-- [Troubleshooting](#troubleshooting)
+- Deploy multiple isolated GitLab instances simultaneously
+- Each deployment has its own network and volumes
+- Automatic port assignment using Docker's built-in mechanism
+- Configurable via custom templates and environment variables
+- Post-deployment automation support
+- Simple management with deployment and destruction scripts
 
-## Overview
+## Requirements
 
-This system provides a set of scripts to manage GitLab testing environments with these key features:
+- Docker and Docker Compose
+- Bash shell environment
+- envsubst utility (part of gettext package)
 
-- **Dynamic discovery** of services without hardcoded values
-- **Flexible configuration** with service-specific overrides
-- **Network isolation** for each deployment
-- **Consistent naming** with deployment_name-service_name pattern
-- **Version control** with GitLab version selection
-- **Environment variable customization** via .env files
-- **Data persistence options** when destroying environments
-- **Post-deployment automation** for advanced setup tasks
+## Quick Start
 
-## Directory Structure
+1. Clone this repository
+2. Create a deployment directory with at least one service
+3. Run the deployment script
 
-```
-gitlab-compose/
-  deploy.sh                # Deployment script
-  destroy.sh               # Teardown script
-  .env                     # Default environment variables
-  docker-compose.template  # Base configuration template
-  deployment1-name/        # A deployment environment
-    service1-name/         # A service within the deployment
-      docker-compose.service1-name.template  # Optional custom template
-      gitlab.rb            # Service-specific GitLab configuration
-      .env                 # Optional service-specific environment variables
-      post-deploy.sh       # Optional post-deployment script
-    service2-name/
-      gitlab.rb
-  deployment2-name/
-    # More services...
-```
-
-## Installation
-
-1. Clone this repository:
+Example:
 
 ```bash
-git clone https://your-repo-url/gitlab-compose.git
-cd gitlab-compose
+./deploy.sh basic-gitlab
 ```
 
-2. Install dependencies:
+To destroy a deployment:
 
 ```bash
-# Check and install required dependencies
-./install_dependencies.sh
+./destroy.sh basic-gitlab
 ```
 
-3. Make the scripts executable (if not already):
+## Port Assignment
 
-```bash
-chmod +x deploy.sh destroy.sh
+GitLab Compose uses Docker's built-in port allocation system to automatically assign available ports on the host machine.
+
+### Automatic Port Assignment
+
+By default, the system lets Docker assign random available ports for HTTP, HTTPS, and SSH services:
+
+```yaml
+ports:
+  - ":80"   # HTTP
+  - ":443"  # HTTPS
+  - ":22"   # SSH
 ```
 
-## Usage
+The assigned ports are displayed in the deployment summary:
 
-### Deploying Environments
+```
+[2023-03-23 12:34:56] INFO: Exposed Ports:
+[2023-03-23 12:34:56] INFO:   HTTP: 0.0.0.0:32768 -> 80/tcp
+[2023-03-23 12:34:56] INFO:   HTTPS: 0.0.0.0:32769 -> 443/tcp
+[2023-03-23 12:34:56] INFO:   SSH: 0.0.0.0:32770 -> 22/tcp
+```
 
-To deploy a testing environment:
+### Manual Port Assignment
+
+You can manually specify ports by setting environment variables in a `.env` file:
+
+```
+HTTP_PORT=8080
+HTTPS_PORT=8443
+SSH_PORT=2222
+```
+
+Place this file in either:
+- The root directory (affects all deployments)
+- The deployment directory (affects all services in that deployment)
+- The service directory (affects only that specific service)
+
+## Deployment Structure
+
+A deployment consists of:
+
+```
+deployment-name/
+├── service1/
+│   ├── gitlab.rb              # GitLab configuration
+│   ├── .env                   # Optional environment variables
+│   ├── post-deploy.sh         # Optional post-deployment script
+│   └── docker-compose.service1.template  # Optional custom template
+└── service2/
+    └── ...
+```
+
+## Custom Templates
+
+Create a file named `docker-compose.service-name.template` in the service directory to override the default template.
+
+For more details, see [TEMPLATES.md](TEMPLATES.md).
+
+## Example Deployments
+
+See [EXAMPLE.md](EXAMPLE.md) for example deployments and configurations.
+
+## Management Scripts
+
+### deploy.sh
 
 ```bash
 ./deploy.sh <deployment_name> [--version <gitlab_version>]
 ```
 
-Examples:
+Options:
+- `--version <version>`: Specify GitLab version (default: latest)
+- `--help`: Display help information
 
-```bash
-# Deploy using the latest GitLab version
-./deploy.sh basic
-
-# Deploy with a specific GitLab version
-./deploy.sh geo --version 15.11.3-ce.0
-```
-
-The script will:
-1. Create a dedicated Docker network for the deployment
-2. Discover all services within the deployment directory
-3. Deploy each service using the appropriate configuration
-4. Mount service-specific gitlab.rb files
-5. Run any post-deployment scripts found in service directories
-
-### Destroying Environments
-
-To tear down a testing environment:
+### destroy.sh
 
 ```bash
 ./destroy.sh <deployment_name> [--keep-data]
 ```
 
-Examples:
+Options:
+- `--keep-data`: Preserve data volumes after destroying services
+- `--help`: Display help information
 
-```bash
-# Destroy and remove all data
-./destroy.sh basic
+## Configuration Reference
 
-# Destroy but preserve data volumes for future use
-./destroy.sh geo --keep-data
-```
+### gitlab.rb
 
-The script will:
-1. Stop all services in reverse order
-2. Remove containers and (optionally) volumes
-3. Remove the Docker network
+Each service should have a `gitlab.rb` file that configures the GitLab instance.
 
-### Accessing Services
-
-Once deployed, services are accessible:
-
-- Each service has a container name of `<deployment_name>-<service_name>` and hostname of `<deployment_name>-<service_name>.local`
-- Services within the same deployment can communicate with each other using these hostnames
-- Default ports are automatically incremented for each service in a deployment to avoid conflicts
-- You must manually update your `/etc/hosts` file to access the services by hostname from your host machine
-
-To update your `/etc/hosts` file:
-
-```bash
-# Manually add entries to /etc/hosts (requires sudo)
-sudo nano /etc/hosts
-
-# Add lines like:
-127.0.0.1    deployment1-service1.local
-127.0.0.1    deployment1-service2.local
-```
-
-## Creating New Deployments
-
-To create a new deployment environment:
-
-1. Create a new directory under the gitlab-compose directory:
-
-```bash
-mkdir -p gitlab-compose/my-new-deployment
-```
-
-2. Add service directories and their configurations:
-
-```bash
-mkdir -p gitlab-compose/my-new-deployment/gitlab-web
-```
-
-3. Create the required gitlab.rb file:
-
-```bash
-touch gitlab-compose/my-new-deployment/gitlab-web/gitlab.rb
-```
-
-4. Edit the gitlab.rb file with appropriate configuration
-
-5. (Optional) Create a custom template for the service:
-
-```bash
-touch gitlab-compose/my-new-deployment/gitlab-web/docker-compose.gitlab-web.template
-```
-
-### Adding New Services
-
-To add a new service to an existing deployment:
-
-1. Create a new service directory:
-
-```bash
-mkdir -p gitlab-compose/existing-deployment/new-service
-```
-
-2. Create the required gitlab.rb file:
-
-```bash
-touch gitlab-compose/existing-deployment/new-service/gitlab.rb
-```
-
-3. (Optional) Create a custom docker-compose template if needed:
-
-```bash
-touch gitlab-compose/existing-deployment/new-service/docker-compose.new-service.template
-```
-
-Refer to [EXAMPLE.md](./EXAMPLE.md) for a more complete example.
-
-### Environment Variable Customization
-
-The system uses environment variables for configuration, with a priority order:
-
-1. Service-specific variables (automatically created by the deploy script)
-2. Variables from the top-level `.env` file (if it exists)
-3. Variables from service-specific `.env` files (if they exist)
-
-To customize environment variables:
-
-1. **Project-level defaults**: Edit the top-level `.env` file:
-
-```bash
-# .env file at the root of gitlab-compose
-# These variables will be available to all services but can be overridden
-GITLAB_SMTP_ENABLED=true
-GITLAB_SMTP_SERVER=smtp.example.com
-```
-
-2. **Service-specific overrides**: Create a `.env` file in a service directory:
-
-```bash
-# .env file in a service directory
-# These variables will override project-level defaults
-GITLAB_SMTP_SERVER=smtp.service-specific.com
-GITLAB_BACKUP_KEEP_TIME=604800
-```
-
-Variables like `SERVICE_NAME`, `CONTAINER_NAME`, ports, etc. are automatically generated by the deploy script
-and should not be modified in your `.env` files unless you need to override them for a specific reason.
-
-### Customizing Service Configuration
-
-1. **Basic Configuration** - Edit the gitlab.rb file for your service:
+Example:
 
 ```ruby
-# Example gitlab.rb for a service
-external_url 'http://deployment-name-service-name.local'
+external_url 'http://my-gitlab.local'
 gitlab_rails['gitlab_shell_ssh_port'] = 2222
-# More configuration...
 ```
 
-2. **Advanced Configuration** - Create a custom docker-compose template:
+### Environment Variables
 
-```yaml
-version: '3.8'
+These variables can be set in `.env` files:
 
-services:
-  $SERVICE_NAME:
-    ports:
-      - "${HTTP_PORT:-8080}:80"
-      - "${SSH_PORT:-2222}:22"
-    
-    environment:
-      ADDITIONAL_ENV: "value"
-```
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `GITLAB_VERSION` | GitLab version | `15.11.3-ee.0` |
+| `HTTP_PORT` | Host port for HTTP | `8080` |
+| `HTTPS_PORT` | Host port for HTTPS | `8443` |
+| `SSH_PORT` | Host port for SSH | `2222` |
 
-Refer to [TEMPLATE.md](./TEMPLATES.md) for a more complete example.
+## Post-Deployment Automation
 
-### Post-Deployment Scripts
-
-You can add post-deployment automation by creating a `post-deploy.sh` script in a service directory:
-
-```bash
-touch gitlab-compose/my-deployment/my-service/post-deploy.sh
-chmod +x gitlab-compose/my-deployment/my-service/post-deploy.sh
-```
-
-This script will automatically run after all services are deployed. It's useful for:
-- Loading data into services
-- Setting up connections between services
-- Running configuration commands
-- Performing health checks
-
-Example post-deployment script:
-
-```bash
-#!/bin/bash
-# Load LDAP users after container starts
-echo "Configuring LDAP service..."
-sleep 5  # Wait for service to fully start
-docker exec my-deployment-ldap ldapadd -c -x -H ldap://localhost:389 \
-  -D "cn=admin,dc=example,dc=org" -w admin \
-  -f /container/service/slapd/assets/config/bootstrap/ldif/custom/users.ldif
-```
-
-## Sharing Environments
-
-To share your testing environment with colleagues:
-
-1. **Document your deployment**: Create a README in your deployment directory explaining:
-   - Purpose of the deployment
-   - Services included and their configurations
-   - Any special requirements
-
-2. **Share the directory**: Either through:
-   - Version control (Git)
-   - Container registry (for pre-built images)
-   - Deployment scripts (for cloud environments)
-
-3. **Provide deployment instructions**:
-
-```bash
-# Clone the repository (if using Git)
-git clone https://your-repo-url/gitlab-compose.git
-
-# Deploy the environment
-cd gitlab-compose
-./deploy.sh your-deployment-name --version 15.11.3-ce.0
-```
-
-## Best Practices
-
-1. **Naming Conventions**:
-   - Use descriptive names for deployments and services
-   - Follow kebab-case for directory names (e.g., `ha-cluster`, `geo-setup`)
-
-2. **Configuration Management**:
-   - Keep gitlab.rb files focused and minimal
-   - Document the purpose of each setting with comments
-   - Use environment variables for sensitive information
-
-3. **Resource Management**:
-   - Destroy unused environments to free resources
-   - Use the `--keep-data` flag if you plan to redeploy later
-   - Consider resource limits in docker-compose files for complex setups
-
-4. **Testing and Development**:
-   - Create separate deployments for different test scenarios
-   - Document any special steps needed for your scenario
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Service fails to start**:
-   - Check the logs: `docker logs <deployment_name>-<service_name>`
-   - Verify the gitlab.rb configuration
-   - Ensure ports are not already in use
-
-2. **Services cannot communicate**:
-   - Verify all services are on the same network: `docker network inspect <deployment_name>-network`
-   - Check hostname resolution: `docker exec <container_name> ping <other_container_name>.local`
-
-3. **Deploy script fails**:
-   - Ensure all directories exist
-   - Check permissions on gitlab.rb files
-   - Verify Docker and Docker Compose are properly installed
-
-4. **Post-deployment script issues**:
-   - Check script permissions (must be executable)
-   - Verify script path is correct
-   - Check for syntax errors in the script
-
-### Getting Logs
-
-```bash
-# Get logs for a specific service
-docker logs <deployment_name>-<service_name>
-
-# Follow logs in real-time
-docker logs -f <deployment_name>-<service_name>
-```
-
-### Accessing Containers
-
-```bash
-# Open a shell in a container
-docker exec -it <deployment_name>-<service_name> bash
-```
+Create an executable `post-deploy.sh` script in a service directory to run commands after deployment.
