@@ -128,6 +128,7 @@ process_compose_file() {
   set -a  # Export all variables
   
   # 1. Export essential script-defined variables first
+  export DEPLOYMENT_DIR
   export SERVICE_NAME="${service_name}"
   export CONTAINER_NAME="${container_name}"
   export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
