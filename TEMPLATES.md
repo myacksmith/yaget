@@ -1,6 +1,6 @@
 # Template Reference Guide
 
-This document provides a reference for creating and customizing templates in the GitLab test environment system.
+This document provides a reference for creating and customizing templates in the YAGET (Yet Another GitLab Environment Tool) system.
 
 ## Available Variables
 

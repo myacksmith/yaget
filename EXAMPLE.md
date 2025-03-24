@@ -1,6 +1,6 @@
 # Example GitLab Test Deployments
 
-This document provides examples of GitLab test environments you can create with this system.
+This document provides examples of GitLab test environments you can create with YAGET (Yet Another GitLab Environment Tool).
 
 ## Basic Standalone GitLab
 

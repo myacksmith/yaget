@@ -63,17 +63,13 @@ check_directory() {
 }
 
 # Print ASCII art banner
-echo ""
-echo "  _____ _ _   _           _        _____                                      "
-echo " / ____(_) | | |         | |      / ____|                                     "
-echo "| |  __ _| |_| |     __ _| |__   | |     ___  _ __ ___  _ __   ___  ___  ___ "
-echo "| | |_ | | __| |    / _\` | '_ \  | |    / _ \| '_ \` _ \| '_ \ / _ \/ __|/ _ \\"
-echo "| |__| | | |_| |___| (_| | |_) | | |___| (_) | | | | | | |_) | (_) \__ \  __/"
-echo " \_____|_|\__|______\__,_|_.__/   \_____\___/|_| |_| |_| .__/ \___/|___/\___|"
-echo "                                                        | |                   "
-echo "                                                        |_|                   "
-echo ""
-echo "GitLab Test Environment Deployer"
+echo " __  __     ______     ______     ______     ______  ";
+echo "/\ \_\ \   /\  __ \   /\  ___\   /\  ___\   /\__  _\ ";
+echo "\ \____ \  \ \  __ \  \ \ \__ \  \ \  __\   \/_/\ \/ ";
+echo " \/\_____\  \ \_\ \_\  \ \_____\  \ \_____\    \ \_\ ";
+echo "  \/_____/   \/_/\/_/   \/_____/   \/_____/     \/_/ ";
+echo "                                                     ";
+echo "    (Yet Another GitLab Environment Tool)"
 echo ""
 
 # Parse command line arguments
@@ -139,7 +135,7 @@ process_compose_file() {
   export CONFIG_PATH="${service_dir}"
   export GITLAB_VERSION="${GITLAB_VERSION}"
   export SERVICE_DIR="${service_dir}"
-
+  
   # 2. Load default environment if it exists
   if [ -f "${DEFAULT_ENV_FILE}" ]; then
     source "${DEFAULT_ENV_FILE}"
@@ -272,21 +268,21 @@ for service in "${DEPLOYED_SERVICES[@]}"; do
     log "     Environment file: ${env_file}"
   fi
 
-  # Attempt to find the random exposed ports
+  # Attempt to find the automatically assigned ports
   if docker port "${DEPLOYMENT_NAME}-${service}" &>/dev/null; then
     log "     Exposed Ports:"
     docker port "${DEPLOYMENT_NAME}-${service}" | while read -r port_mapping; do
-      # Show service:container port mapping
-      container_port=$(echo "$port_mapping" | awk -F '->' '{print $2}' | tr -d ' ')
-      host_port=$(echo "$port_mapping" | awk -F '->' '{print $1}')
-
+      # Enhance port display to show service:container mapping
+      container_port=$(echo "$port_mapping" | awk -F'->' '{print $2}' | tr -d ' ')
+      host_port=$(echo "$port_mapping" | awk -F'->' '{print $1}')
+      
       case "$container_port" in
         "80/tcp") service_name="HTTP" ;;
         "443/tcp") service_name="HTTPS" ;;
         "22/tcp") service_name="SSH" ;;
         *) service_name="Service" ;;
       esac
-
+      
       log "       ${service_name}: ${host_port} -> ${container_port}"
     done
   fi

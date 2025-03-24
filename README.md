@@ -1,4 +1,4 @@
-# GitLab Compose
+# YAGET (Yet Another GitLab Environment Tool)
 
 A flexible Docker Compose-based system for deploying and managing multiple GitLab test environments.
 
@@ -37,7 +37,7 @@ To destroy a deployment:
 
 ## Port Assignment
 
-GitLab Compose uses Docker's built-in port allocation system to automatically assign available ports on the host machine.
+YAGET uses Docker's built-in port allocation system to automatically assign available ports on the host machine.
 
 ### Automatic Port Assignment
 
