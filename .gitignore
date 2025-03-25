@@ -1,3 +1,6 @@
 deployments
 .DS_Store
 Gitlab.gitlab-license
+*-config
+*-data
+*-logs
