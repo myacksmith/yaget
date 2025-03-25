@@ -13,7 +13,7 @@ services:
       # Mount the service-specific gitlab.rb file
       - "$CONFIG_PATH/gitlab.rb:/etc/gitlab/gitlab.rb:ro"
       # Mount license life
-      - "$CONFI_PATH/Gitlab.gitlab-license:/etc/gitlab/Gitlab.gitlab-license:ro"
+      - "$CONFIG_PATH/Gitlab.gitlab-license:/etc/gitlab/Gitlab.gitlab-license:ro"
       # Data volumes - these will be prefixed with the deployment and service names
       - "$CONFIG_PATH/$DEPLOYMENT_NAME-$SERVICE_NAME-config:/etc/gitlab"
       - "$CONFIG_PATH/$DEPLOYMENT_NAME-$SERVICE_NAME-logs:/var/log/gitlab"
