@@ -1,4 +1,4 @@
-!#/bin/bash
+#!/bin/bash
 
 # Wait for the instance to be up and operational
 GITLAB_URL="http://$DEPLOYMENT_NAME-$SERVICE_NAME.local"
