@@ -5,6 +5,14 @@ GITLAB_URL="http://$DEPLOYMENT_NAME-$SERVICE_NAME.local"
 READINESS_URL="${GITLAB_URL}/-/readiness"
 TIMEOUT=300 # 5 mins
 
+get_http_port() {
+  # Get the host port mapped to container port 80
+  local port_mapping=$(docker post "$CONATINER_NAME" 80/tcp 2>/dev/null)
+
+  # Extract port using bash parameter expansion
+  echo "${port_mapping#*:}"
+}
+
 check_readiness() {
   echo "Checking if GitLab container is ready"
 
@@ -20,14 +28,15 @@ check_readiness() {
     fi
 
     # Check readiness endpoint
-    http_status=$(curl -s -o /dev/null -w "%{http_code}" "$READINESS_URL")
+    http_port=$(get_http_port)
+    http_status=$(curl -s -o /dev/null -w "%{http_code}" -p $http_port ${READINESS_URL})
 
     if [[ "$http_status" == "200" ]]; then
       echo "GitLab is ready!"
       exit 0
     else
       echo "Waiting for GitLab services to initialize... $(($end_time - $(date +%s))) seconds remaining"
-      echo "Current status: $http_status"
+      echo "Current HTTP status: ${http_status}"
       sleep 10
       continue
     fi
