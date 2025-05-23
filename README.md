@@ -19,48 +19,19 @@ A flexible Docker Compose-based system for deploying and managing multiple GitLa
 
 ## Quick Start
 
-1. Clone this repository
-2. Create a deployment directory with at least one service
-3. Run the deployment script
+1. Clone this repository: `git clone git@gitlab.com:yaker-gitlab/yaget.git`
+2. Change into that directory: `cd ./yaget`
+3. Run the deployment script: 
+  2.1 For a basic gitlab instance: `./deploy.sh basic-gitlab`
+  2.2 For a basic GitLab instance at a specific version: `./deploy.sh basic-gitlab --version 17.11.1-ee.0`
+  2.3 For a basic GitLab instance with LDAP configured: `./deploy.sh sso`
+  2.4 For a basic GitLab instance at a specific version with LDAP configured: `./deploy.sh sso --version 16.10.5-ee.0`
 
-Example:
-
-```bash
-./deploy.sh basic-gitlab
-```
-
-To destroy a deployment:
-
-```bash
-./destroy.sh basic-gitlab
-```
+To destroy a deployment: `./destroy.sh basic-gitlab`
 
 ## Port Assignment
 
-YAGET uses Docker's built-in port allocation system to automatically assign available ports on the host machine.
-
-### Automatic Port Assignment
-
-By default, the system lets Docker assign random available ports for HTTP, HTTPS, and SSH services:
-
-```yaml
-ports:
-  - ":80"   # HTTP
-  - ":443"  # HTTPS
-  - ":22"   # SSH
-```
-
-The assigned ports are displayed in the deployment summary:
-
-```
-[2023-03-23 12:34:56] INFO: Exposed Ports:
-[2023-03-23 12:34:56] INFO:   HTTP: 0.0.0.0:32768 -> 80/tcp
-[2023-03-23 12:34:56] INFO:   HTTPS: 0.0.0.0:32769 -> 443/tcp
-[2023-03-23 12:34:56] INFO:   SSH: 0.0.0.0:32770 -> 22/tcp
-```
-
-### Manual Port Assignment
-
+YAGET uses Docker's built-in port allocation to automatically assign available ports on the host machine.
 You can manually specify ports by setting environment variables in a `.env` file:
 
 ```
@@ -70,7 +41,7 @@ SSH_PORT=2222
 ```
 
 Place this file in either:
-- The root directory (affects all deployments)
+- The top-level YAGET directory (affects all deployments)
 - The deployment directory (affects all services in that deployment)
 - The service directory (affects only that specific service)
 
