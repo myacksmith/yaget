@@ -32,25 +32,25 @@ show_usage() {
 # Function to log with timestamp and color
 log() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${BLUE}[${timestamp}] INFO: $1${NC}"
+  echo -e "${BLUE}[${timestamp}] INFO: $1${NC}" >&2
 }
 
 # Function to log success messages
 log_success() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${GREEN}[${timestamp}] SUCCESS: $1${NC}"
+  echo -e "${GREEN}[${timestamp}] SUCCESS: $1${NC}" >&2
 }
 
 # Function to log warnings
 log_warn() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${YELLOW}[${timestamp}] WARN: $1${NC}"
+  echo -e "${YELLOW}[${timestamp}] WARN: $1${NC}" >&2
 }
 
 # Function to log errors
 log_error() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${RED}[${timestamp}] ERROR: $1${NC}"
+  echo -e "${RED}[${timestamp}] ERROR: $1${NC}" >&2
 }
 
 # Function to check if a directory exists

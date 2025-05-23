@@ -20,22 +20,22 @@ SLEEP_INTERVAL=5
 
 log() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${BLUE}[${timestamp}] LDAP POST-DEPLOY: $1${NC}"
+  echo -e "${BLUE}[${timestamp}] LDAP POST-DEPLOY: $1${NC}" >&2
 }
 
 log_success() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${GREEN}[${timestamp}] LDAP POST-DEPLOY: $1${NC}"
+  echo -e "${GREEN}[${timestamp}] LDAP POST-DEPLOY: $1${NC}" >&2
 }
 
 log_warn() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${YELLOW}[${timestamp}] LDAP POST-DEPLOY: $1${NC}"
+  echo -e "${YELLOW}[${timestamp}] LDAP POST-DEPLOY: $1${NC}" >&2
 }
 
 log_error() {
   local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${RED}[${timestamp}] LDAP POST-DEPLOY: $1${NC}"
+  echo -e "${RED}[${timestamp}] LDAP POST-DEPLOY: $1${NC}" >&2
 }
 
 # Wait for the LDAP container to be ready
