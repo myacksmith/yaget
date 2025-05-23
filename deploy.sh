@@ -14,7 +14,6 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default values
-GITLAB_VERSION="latest"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BASE_TEMPLATE_FILE="${SCRIPT_DIR}/docker-compose.template"
 DEFAULT_ENV_FILE="${SCRIPT_DIR}/.env"
@@ -84,7 +83,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --version)
       if [ -n "$2" ]; then
-        GITLAB_VERSION="$2"
+        CLI_GITLAB_VERSION="$2"
         shift 2
       else
         log_error "Version argument is missing"
@@ -125,7 +124,6 @@ process_compose_file() {
   local temp_file=$(mktemp)
   
   # Set variables for envsubst - export essential variables first
-  set -a  # Export all variables
   
   # 1. Export essential script-defined variables first
   export DEPLOYMENT_DIR
@@ -134,9 +132,10 @@ process_compose_file() {
   export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
   export NETWORK_NAME="${NETWORK_NAME}"
   export CONFIG_PATH="${service_dir}"
-  export GITLAB_VERSION="${GITLAB_VERSION}"
   export SERVICE_DIR="${service_dir}"
   
+  set -a  # Export subsequent variable assignments
+
   # 2. Load default environment if it exists
   if [ -f "${DEFAULT_ENV_FILE}" ]; then
     source "${DEFAULT_ENV_FILE}"
@@ -148,6 +147,13 @@ process_compose_file() {
     log "Using environment variables from ${env_file}"
   fi
   
+  # 4. CLI has highest precedence
+  if [ -n "${CLI_GITLAB_VERSION}" ]; then
+    GITLAB_VERSION="${CLI_GITLAB_VERSION}"
+  else
+    GITLAB_VERSION="latest"
+  fi
+
   set +a  # Stop exporting
   
   # Process the file with envsubst

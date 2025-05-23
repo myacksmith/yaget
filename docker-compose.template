@@ -4,7 +4,7 @@
 services:
   $DEPLOYMENT_NAME-$SERVICE_NAME:
     platform: linux/amd64
-    image: "gitlab/gitlab-ee:${GITLAB_VERSION:-latest}"
+    image: "gitlab/gitlab-ee:${GITLAB_VERSION}"
     container_name: "$CONTAINER_NAME"
     hostname: "$CONTAINER_NAME.local"
     restart: unless-stopped
