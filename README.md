@@ -125,7 +125,8 @@ Options:
 
 ### gitlab.rb
 
-Each service should have a `gitlab.rb` file that configures the GitLab instance.
+Each GitLab instance should have a `gitlab.rb` file that configures the GitLab instance.
+Other services don't need it, but YAGET will warn you about it anyway.
 
 Example:
 
@@ -144,6 +145,8 @@ These variables can be set in `.env` files:
 | `HTTP_PORT` | Host port for HTTP | `8080` |
 | `HTTPS_PORT` | Host port for HTTPS | `8443` |
 | `SSH_PORT` | Host port for SSH | `2222` |
+
+_Only `$VAR` and `${VAR}` works with `envsubst`. Other syntax will be treated as literal strings_
 
 ## Post-Deployment Automation
 

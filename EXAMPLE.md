@@ -1,7 +1,5 @@
 # Example GitLab Test Deployments
 
-This document provides examples of GitLab test environments you can create with YAGET (Yet Another GitLab Environment Tool).
-
 ## Basic Standalone GitLab
 
 ```
@@ -28,9 +26,10 @@ gitlab_rails['gitlab_shell_ssh_port'] = 2222
 ```
 sso/
 ├── gitlab/
-│   └── gitlab.rb
 │   └── .env  # Optional environment overrides
+│   └── gitlab.rb
 └── ldap/
+│   └── .env
     ├── docker-compose.ldap.template  # Custom template
     └── post-deploy.sh  # Post-deployment automation
 ```
@@ -42,11 +41,11 @@ services:
     image: "osixia/openldap:1.5.0"
     environment:
       - LDAP_DOMAIN=example.org
-      - LDAP_ADMIN_PASSWORD=${LDAP_PASSWORD:-admin}
+      - LDAP_ADMIN_PASSWORD=${LDAP_PASSWORD}
     volumes:
       - "${SERVICE_DIR}/ldif:/bootstrap/ldif/custom"
     ports:
-      - "${LDAP_PORT:-389}:389"
+      - "${LDAP_PORT}:389"
 ```
 
 **gitlab/.env**:
@@ -55,14 +54,10 @@ services:
 GITLAB_SMTP_ENABLED=true
 ```
 
-## Port Allocation
-
-Ports are assigned automatically:
-- Base port uses a random range (10000-15000)
-- Service index offsets prevent conflicts between services
-- HTTP: base + service_index
-- HTTPS: base + 100 + service_index
-- SSH: base + 200 + service_index
+**ldap/.env**:
+```
+LDAP_PASSWORD=password
+```
 
 ## Destroying Environments
 
