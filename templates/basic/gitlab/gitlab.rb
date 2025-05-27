@@ -1,5 +1,5 @@
 # Basic GitLab configuration
-external_url "${EXTERNAL_URL}"
+external_url "http://basic-gitlab.local"
 
 # Resource optimization for testing
 puma["worker_processes"] = 2

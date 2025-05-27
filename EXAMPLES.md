@@ -1,142 +1,141 @@
-# Example GitLab Test Deployments
+# Examples
 
-## Basic Standalone GitLab
+## How Variables Work
 
-The simplest deployment with just GitLab:
-
+Templates define required variables:
+```ruby
+# gitlab.rb.tpl
+external_url '${EXTERNAL_URL}'
+gitlab_rails['ldap_servers'] = {
+  'main' => {
+    'host' => '${DEPLOYMENT_NAME}-ldap',
+    'bind_dn' => '${LDAP_BIND_DN}',
+    'password' => '${LDAP_BIND_PASSWORD}'
+  }
+}
 ```
-templates/
-└── basic/
-    └── gitlab/
-        └── gitlab.rb      # GitLab configuration
-```
 
-**Usage**:
+Provide values via `.env` or command line:
 ```bash
-# Deploy with defaults
+# .env
+EXTERNAL_URL=http://gitlab.local
+LDAP_BIND_DN=cn=admin,dc=example,dc=org
+LDAP_BIND_PASSWORD=admin
+
+# Or command line
+EXTERNAL_URL=https://test.local ./deploy.sh sso
+```
+
+## Basic GitLab
+
+Minimal setup with one GitLab instance:
+
+```
+templates/basic/gitlab/
+└── gitlab.rb              # GitLab configuration
+```
+
+Deploy:
+```bash
 ./deploy.sh basic
-
-# Override version
-GITLAB_VERSION=15.11.3-ce.0 ./deploy.sh basic
-
-# Check initial root password
-docker exec -it basic-gitlab grep 'Password: ' /etc/gitlab/initial_root_password
 ```
 
 ## GitLab with LDAP
 
-Multi-service deployment with LDAP authentication:
+Multi-service deployment:
 
 ```
-templates/
-└── sso/
-    ├── gitlab/
-    │   ├── gitlab.rb.tpl      # Templated config using ${LDAP_*} variables
-    │   └── .env               # LDAP connection settings
-    └── ldap/
-        ├── docker-compose.yml.tpl  # Custom LDAP container template
-        ├── .env                    # LDAP server configuration
-        ├── post-deploy.sh          # Script to load initial users
-        └── ldif/
-            └── users.ldif          # Initial LDAP users
+templates/sso/
+├── gitlab/
+│   ├── .env               # LDAP connection settings
+│   └── gitlab.rb.tpl      # Config template with ${LDAP_*} variables
+└── ldap/
+    ├── .env               # LDAP server settings
+    ├── post-deploy.sh     # Load initial users
+    └── ldif/
+        └── users.ldif     # User definitions
 ```
 
-The GitLab service will connect to LDAP using hostname `${DEPLOYMENT_NAME}-ldap`.
+Services connect using `${DEPLOYMENT_NAME}-${SERVICE_NAME}` hostnames.
 
-**Usage**:
+Deploy:
 ```bash
-# Deploy the SSO environment
 ./deploy.sh sso
 
-# Test LDAP connectivity
+# Verify LDAP users
 docker exec sso-ldap ldapsearch -x -b "dc=example,dc=org"
 
-# Access GitLab and log in with LDAP users
+# Check GitLab LDAP
+docker exec sso-gitlab gitlab-rake gitlab:ldap:check
 ```
 
-## Working with Deployments
+## Working with Running Deployments
 
-Once deployed, all files and data are in the artifacts directory:
-
-```
-artifacts/sso/
-├── gitlab/
-│   ├── docker-compose.yml     # Generated from template
-│   ├── gitlab.rb             # Generated from gitlab.rb.tpl
-│   └── volumes/              # All GitLab data (bind mounted)
-│       ├── config/
-│       ├── logs/
-│       └── data/
-└── ldap/
-    ├── docker-compose.yml
-    ├── ldif/                 # Copied from source
-    │   └── users.ldif
-    └── volumes/              # All LDAP data (bind mounted)
-        ├── config/
-        └── data/
-```
-
-### Modifying Configurations
-
+### Test configuration changes
 ```bash
-# Edit generated config
-vim artifacts/sso/gitlab/gitlab.rb
-
-# Restart to apply changes
-docker compose -f artifacts/sso/gitlab/docker-compose.yml restart
-
-# View logs
-tail -f artifacts/sso/gitlab/volumes/logs/gitlab-rails/production.log
-
-# Reset to original
-./deploy.sh sso  # Regenerates all files from templates
+docker exec -it basic-gitlab vi /etc/gitlab/gitlab.rb
+docker exec basic-gitlab gitlab-ctl reconfigure
 ```
 
-### Direct Access to Data
-
+### Save changes back to template
 ```bash
-# Browse GitLab repositories
-ls artifacts/sso/gitlab/volumes/data/git-data/repositories/
-
-# Check LDAP database
-ls artifacts/sso/ldap/volumes/data/
-
-# Backup entire deployment
-tar -czf sso-backup.tar.gz artifacts/sso/
+docker cp basic-gitlab:/etc/gitlab/gitlab.rb templates/basic/gitlab/gitlab.rb
 ```
 
-## Cleanup
-
+### Access data directly
 ```bash
-# Remove everything including data
-./destroy.sh sso
+# Logs
+tail -f artifacts/basic/gitlab/volumes/logs/gitlab-rails/production.log
 
-# Keep artifacts for inspection
-./destroy.sh sso --keep-data
+# Repositories  
+ls artifacts/basic/gitlab/volumes/data/git-data/repositories/
+
+# Backup
+tar -czf backup.tar.gz artifacts/basic/
 ```
 
-## Advanced Example: GitLab with External PostgreSQL
+## Custom Deployment Example
 
+Create `templates/custom/`:
+
+```yaml
+# gitlab/docker-compose.yml.tpl
+services:
+  ${SERVICE_NAME}:
+    image: "gitlab/gitlab-ee:${GITLAB_VERSION}"
+    container_name: "${CONTAINER_NAME}"
+    volumes:
+      - "${CONFIG_PATH}/gitlab.rb:/etc/gitlab/gitlab.rb"
+      - "${CONFIG_PATH}/license.txt:/etc/gitlab/license.txt"  # License file
+      - "${SERVICE_DIR}/volumes/config:/etc/gitlab"
+      - "${SERVICE_DIR}/volumes/data:/var/opt/gitlab"
+    environment:
+      - EXTERNAL_URL=${EXTERNAL_URL}
+    networks:
+      - "${NETWORK_NAME}"
+
+# postgres/docker-compose.yml.tpl  
+services:
+  ${SERVICE_NAME}:
+    image: "postgres:${POSTGRES_VERSION}"
+    container_name: "${CONTAINER_NAME}"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - "${SERVICE_DIR}/volumes/data:/var/lib/postgresql/data"
+    networks:
+      - "${NETWORK_NAME}"
 ```
-templates/
-└── gitlab-ext-db/
-    ├── gitlab/
-    │   ├── gitlab.rb.tpl      # Disables bundled PostgreSQL, uses external
-    │   └── .env               # Database connection settings
-    └── postgres/
-        ├── docker-compose.yml.tpl  # PostgreSQL container
-        ├── .env                    # Database configuration
-        └── pre-deploy.sh          # Database initialization
+
+With `.env`:
+```bash
+# gitlab/.env
+GITLAB_VERSION=latest
+EXTERNAL_URL=https://gitlab.test
+
+# postgres/.env
+POSTGRES_VERSION=14
+DB_PASSWORD=secure123
 ```
 
-This structure allows GitLab to use an external PostgreSQL service at `${DEPLOYMENT_NAME}-postgres`.
-
-## Tips
-
-1. **Service Discovery**: Services can reach each other using `${DEPLOYMENT_NAME}-${SERVICE_NAME}` as the hostname
-2. **Template Variables**: Any `*.tpl` file gets processed with environment substitution
-3. **Data Persistence**: All data is in `artifacts/deployment/service/volumes/`
-4. **Environment Variables**: Set in `.env` files or pass on command line
-5. **Scripts**: Use `pre-deploy.sh` for setup, `post-deploy.sh` for configuration after start
-
-For template syntax and available variables, see [TEMPLATES.md](TEMPLATES.md).
+GitLab connects to PostgreSQL at `custom-postgres:5432`.
