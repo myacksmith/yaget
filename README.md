@@ -29,6 +29,8 @@ A flexible Docker Compose-based system for deploying and managing multiple GitLa
 
 To destroy a deployment: `./destroy.sh basic`
 
+The default GitLab version is set to `latest` in `.env`. You can modify this file or override with environment variables.
+
 ## Directory Structure
 
 ### Source Structure
@@ -155,8 +157,8 @@ Examples:
 ### Variable Precedence
 
 Variables are loaded in this order (later overrides earlier):
-1. Default `.env` file in YAGET root directory
-2. Service-specific `.env` files
+1. Default `.env` file in YAGET root directory (shipped with sensible defaults)
+2. Service-specific `.env` files in template directories
 3. Environment variables passed on command line
 
 Example:

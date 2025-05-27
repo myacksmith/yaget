@@ -43,11 +43,12 @@ print_banner() {
 }
 
 get_script_dir() {
-  echo "$( cd "$( dirname "${BASH_SOURCE[1]}" )" && pwd )"
+  # Return the SCRIPT_DIR set by the main script
+  echo "${SCRIPT_DIR}"
 }
 
 get_artifacts_root() {
-  echo "${YAGET_ARTIFACTS_ROOT:-$(get_script_dir)/artifacts}"
+  echo "${YAGET_ARTIFACTS_ROOT:-${SCRIPT_DIR}/artifacts}"
 }
 
 # Environment functions
@@ -55,9 +56,22 @@ load_env_file() {
   local env_file="$1"
   
   if [ -f "${env_file}" ]; then
-    set -a
-    source "${env_file}"
-    set +a
+    # Read the file line by line to preserve existing variables
+    while IFS='=' read -r key value; do
+      # Skip comments and empty lines
+      [[ "$key" =~ ^[[:space:]]*# ]] && continue
+      [[ -z "$key" ]] && continue
+      
+      # Remove leading/trailing whitespace
+      key="${key#"${key%%[![:space:]]*}"}"
+      key="${key%"${key##*[![:space:]]}"}"
+      
+      # Only set if not already set (preserve command line overrides)
+      if [ -z "${!key}" ]; then
+        export "$key=$value"
+      fi
+    done < "$env_file"
+    
     log "Loaded environment from ${env_file}"
   fi
 }

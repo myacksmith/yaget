@@ -3,6 +3,7 @@ set -eo pipefail
 
 # Get script directory and source libraries
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export SCRIPT_DIR  # Make it available to library functions
 source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/docker.sh"
 source "${SCRIPT_DIR}/lib/template.sh"
@@ -65,9 +66,6 @@ for service_dir in ${SERVICE_DIRS}; do
   
   # Load service-specific environment
   load_env_file "${service_dir}/.env"
-  
-  # Ensure critical variables have defaults
-  GITLAB_VERSION="${GITLAB_VERSION:-latest}"
   
   # Run pre-deploy script
   run_deployment_script "${DEPLOYMENT_NAME}" "${SERVICE_NAME}" "${service_dir}/pre-deploy.sh"
