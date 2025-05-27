@@ -1,310 +1,102 @@
 #!/bin/bash
 set -eo pipefail
 
-# deploy.sh
-# Purpose: Deploy GitLab services for a specific deployment environment
-# Usage: ./deploy.sh <deployment_name> [--version <version>]
-# Example: ./deploy.sh deployment1-name --version 15.11.3-ce.0
-
-# Color definitions
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Default values
+# Get script directory and source libraries
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BASE_TEMPLATE_FILE="${SCRIPT_DIR}/docker-compose.template"
-DEFAULT_ENV_FILE="${SCRIPT_DIR}/.env"
-NETWORK_NAME=""
+source "${SCRIPT_DIR}/lib/common.sh"
+source "${SCRIPT_DIR}/lib/docker.sh"
+source "${SCRIPT_DIR}/lib/template.sh"
+source "${SCRIPT_DIR}/lib/deployment.sh"
 
-# Function to display usage information
+# Print banner
+print_banner
+
+# Show usage
 show_usage() {
-  echo "Usage: $0 <deployment_name> [--version <gitlab_version>]"
+  echo "Usage: $0 <deployment_name>"
   echo ""
   echo "Options:"
-  echo "  --version <version>    Specify GitLab version (default: latest)"
   echo "  --help                 Show this help message"
+  echo ""
+  echo "Environment variables:"
+  echo "  GITLAB_VERSION         GitLab version (default: latest)"
+  echo "  YAGET_ARTIFACTS_ROOT   Custom artifacts directory"
+  echo "  YAGET_TEMPLATES_DIR    Custom templates directory (default: ./templates)"
   exit 1
 }
 
-# Function to log with timestamp and color
-log() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${BLUE}[${timestamp}] INFO: $1${NC}" >&2
-}
-
-# Function to log success messages
-log_success() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${GREEN}[${timestamp}] SUCCESS: $1${NC}" >&2
-}
-
-# Function to log warnings
-log_warn() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${YELLOW}[${timestamp}] WARN: $1${NC}" >&2
-}
-
-# Function to log errors
-log_error() {
-  local timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-  echo -e "${RED}[${timestamp}] ERROR: $1${NC}" >&2
-}
-
-# Function to check if a directory exists
-check_directory() {
-  if [ ! -d "$1" ]; then
-    log_error "Directory $1 does not exist."
-    exit 1
-  fi
-}
-
-# Print ASCII art banner
-echo " __  __     ______     ______     ______     ______  ";
-echo "/\ \_\ \   /\  __ \   /\  ___\   /\  ___\   /\__  _\ ";
-echo "\ \____ \  \ \  __ \  \ \ \__ \  \ \  __\   \/_/\ \/ ";
-echo " \/\_____\  \ \_\ \_\  \ \_____\  \ \_____\    \ \_\ ";
-echo "  \/_____/   \/_/\/_/   \/_____/   \/_____/     \/_/ ";
-echo "                                                     ";
-echo "    (Yet Another GitLab Environment Tool)"
-echo ""
-
-# Parse command line arguments
-if [ $# -lt 1 ]; then
-  show_usage
-fi
-
+# Parse arguments
+[ $# -lt 1 ] && show_usage
 DEPLOYMENT_NAME="$1"
-shift
 
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --version)
-      if [ -n "$2" ]; then
-        CLI_GITLAB_VERSION="$2"
-        shift 2
-      else
-        log_error "Version argument is missing"
-        show_usage
-      fi
-      ;;
-    --help)
-      show_usage
-      ;;
-    *)
-      log_error "Unknown option $1"
-      show_usage
-      ;;
-  esac
-done
+# Handle --help
+[ "$1" = "--help" ] && show_usage
 
-# Check if deployment directory exists
-DEPLOYMENT_DIR="${SCRIPT_DIR}/${DEPLOYMENT_NAME}"
-check_directory "${DEPLOYMENT_DIR}"
+# Validate deployment directory exists
+TEMPLATES_DIR="${YAGET_TEMPLATES_DIR:-${SCRIPT_DIR}/templates}"
+TEMPLATE_DIR="${TEMPLATES_DIR}/${DEPLOYMENT_NAME}"
+[ -d "${TEMPLATE_DIR}" ] || die "Deployment ${DEPLOYMENT_NAME} not found in ${TEMPLATE_DIR}"
 
-# Create a Docker network for this deployment if it doesn't exist already
+# Setup paths
 NETWORK_NAME="${DEPLOYMENT_NAME}-network"
-if ! docker network inspect "${NETWORK_NAME}" &>/dev/null; then
-  log "Creating Docker network: ${NETWORK_NAME}"
-  docker network create "${NETWORK_NAME}"
-fi
+ARTIFACTS_ROOT="$(get_artifacts_root)"
+ARTIFACTS_DIR="${ARTIFACTS_ROOT}/${DEPLOYMENT_NAME}"
+DEFAULT_TEMPLATE="${SCRIPT_DIR}/docker-compose.yml.tpl"
 
-# Function to process the compose file using envsubst for all files
-process_compose_file() {
-  local source_file="$1"
-  local env_file="$2"
-  local service_name="$3"
-  local container_name="$4"
-  local service_dir="$5"
-  local service_index="$6"
-  
-  # Create a temporary file
-  local temp_file=$(mktemp)
-  
-  # Set variables for envsubst - export essential variables first
-  
-  # 1. Export essential script-defined variables first
-  export DEPLOYMENT_DIR
-  export SERVICE_NAME="${service_name}"
-  export CONTAINER_NAME="${container_name}"
-  export DEPLOYMENT_NAME="${DEPLOYMENT_NAME}"
-  export NETWORK_NAME="${NETWORK_NAME}"
-  export CONFIG_PATH="${service_dir}"
-  export SERVICE_DIR="${service_dir}"
-  
-  set -a  # Export subsequent variable assignments
+# Create network
+create_network "${NETWORK_NAME}"
 
-  # 2. Load default environment if it exists
-  if [ -f "${DEFAULT_ENV_FILE}" ]; then
-    source "${DEFAULT_ENV_FILE}"
-  fi
-  
-  # 3. Load service-specific environment file if it exists (overrides defaults)
-  if [ -f "${env_file}" ]; then
-    source "${env_file}"
-    log "Using environment variables from ${env_file}"
-  fi
-  
-  # 4. CLI has highest precedence
-  if [ -n "${CLI_GITLAB_VERSION}" ]; then
-    GITLAB_VERSION="${CLI_GITLAB_VERSION}"
-  else
-    GITLAB_VERSION="latest"
-  fi
+# Clean and create artifacts directory
+clean_artifacts "${ARTIFACTS_DIR}"
+mkdir -p "${ARTIFACTS_DIR}"
 
-  set +a  # Stop exporting
-  
-  # Process the file with envsubst
-  envsubst < "${source_file}" > "${temp_file}" || {
-    log_error "Failed to process file: ${source_file}"
-    rm -f "${temp_file}"
-    return 1
-  }
-  
-  # Return the path to the processed file
-  echo "${temp_file}"
-}
+# Load default environment if exists
+load_env_file "${SCRIPT_DIR}/.env"
 
-# Find all service directories
-SERVICE_DIRS=$(find "${DEPLOYMENT_DIR}" -mindepth 1 -maxdepth 1 -type d | sort)
-
-if [ -z "${SERVICE_DIRS}" ]; then
-  log_error "No service directories found in ${DEPLOYMENT_DIR}"
-  exit 1
-fi
-
-# Function to deploy a service
-deploy_service() {
-  local service_dir="$1"
-  local service_name=$(basename "${service_dir}")
-  local service_index="$2"  # Index of this service in the deployment
-  local container_name="${DEPLOYMENT_NAME}-${service_name}"
-  local custom_template_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.template"
-  local custom_compose_file="${SCRIPT_DIR}/${DEPLOYMENT_NAME}/${service_name}/docker-compose.${service_name}.yml"
-  local service_env_file="${service_dir}/.env"
-  local template_file="${BASE_TEMPLATE_FILE}"
-  
-  log "Deploying service: ${service_name} (index: ${service_index})"
-  
-  # Check if custom template/compose file exists for this service
-  if [ -f "${custom_template_file}" ]; then
-    log "Using custom template file: ${custom_template_file}"
-    template_file="${custom_template_file}"
-  elif [ -f "${custom_compose_file}" ]; then
-    # For files without .template extension
-    log "Using custom compose file: ${custom_compose_file}"
-    template_file="${custom_compose_file}"
-  else
-    log "Using base template file: ${BASE_TEMPLATE_FILE}"
-  fi
-  
-  # Check if service has a gitlab.rb file
-  if [ ! -f "${service_dir}/gitlab.rb" ]; then
-    log_warn "No gitlab.rb file found for service ${service_name}"
-  fi
-  
-  # Process the template and get the path to the processed file
-  local processed_compose_file=$(process_compose_file "${template_file}" "${service_env_file}" "${service_name}" "${container_name}" "${service_dir}" "${service_index}")
-  if [ $? -ne 0 ]; then
-    log_error "Failed to process template for service ${service_name}"
-    return 1
-  fi
-  
-  # Deploy the service using docker compose
-  # No need for --env-file as we've already exported the variables
-  if ! docker compose -f "${processed_compose_file}" -p "${DEPLOYMENT_NAME}" up -d; then
-    log_error "Failed to deploy service ${service_name}"
-    rm -f "${processed_compose_file}"
-    return 1
-  fi
-  
-  # Clean up the temporary file
-  rm -f "${processed_compose_file}"
-  log_success "Service ${service_name} deployed successfully"
-  return 0
-}
-
-# Deploy each service
-FAILURE=0
+# Find and deploy services
+SERVICE_DIRS=$(find_service_directories "${TEMPLATE_DIR}")
 DEPLOYED_SERVICES=()
-SERVICE_INDEX=0
 
 for service_dir in ${SERVICE_DIRS}; do
-  if deploy_service "${service_dir}" "${SERVICE_INDEX}"; then
-    DEPLOYED_SERVICES+=("$(basename "${service_dir}")")
-  else
-    log_warn "Failed to deploy service $(basename "${service_dir}")"
-    FAILURE=1
+  SERVICE_NAME=$(basename "${service_dir}")
+  SERVICE_ARTIFACTS_DIR="${ARTIFACTS_DIR}/${SERVICE_NAME}"
+  
+  log "Processing service: ${SERVICE_NAME}"
+  
+  # Load service-specific environment
+  load_env_file "${service_dir}/.env"
+  
+  # Ensure critical variables have defaults
+  GITLAB_VERSION="${GITLAB_VERSION:-latest}"
+  
+  # Run pre-deploy script
+  run_deployment_script "${DEPLOYMENT_NAME}" "${SERVICE_NAME}" "${service_dir}/pre-deploy.sh"
+  
+  # Prepare service (copy files and process templates)
+  prepare_service "${service_dir}" "${ARTIFACTS_DIR}" "${SERVICE_NAME}"
+  
+  # Set up template variables
+  export_template_variables "${DEPLOYMENT_NAME}" "${SERVICE_NAME}" "${NETWORK_NAME}" "${ARTIFACTS_DIR}" "${TEMPLATES_DIR}"
+  
+  # Find and process docker-compose template
+  COMPOSE_TEMPLATE=$(find_compose_template "${TEMPLATE_DIR}" "${SERVICE_NAME}" "${DEFAULT_TEMPLATE}")
+  COMPOSE_FILE="${SERVICE_ARTIFACTS_DIR}/docker-compose.yml"
+  
+  process_template "${COMPOSE_TEMPLATE}" "${COMPOSE_FILE}"
+  
+  # Deploy the service
+  if deploy_service "${COMPOSE_FILE}" "${DEPLOYMENT_NAME}" "${SERVICE_NAME}"; then
+    DEPLOYED_SERVICES+=("${SERVICE_NAME}")
+    
+    # Run post-deploy script
+    run_deployment_script "${DEPLOYMENT_NAME}" "${SERVICE_NAME}" "${service_dir}/post-deploy.sh"
   fi
-  # Increment service index for reference
-  SERVICE_INDEX=$((SERVICE_INDEX + 1))
 done
 
+# Show summary
 if [ ${#DEPLOYED_SERVICES[@]} -eq 0 ]; then
   log_error "No services were deployed successfully"
   exit 1
 fi
 
-# Run post deployment scripts for each service
-for service in "${DEPLOYED_SERVICES[@]}"; do
-  post_deploy_script="${DEPLOYMENT_DIR}/${service}/post-deploy.sh"
-  if [ -f "${post_deploy_script}" ] && [ -x "${post_deploy_script}" ]; then
-    log "Running post-deployment script for ${service}..."
-    "${post_deploy_script}" || {
-      log_warn "Post-deployment script for ${service} returned non-zero exit code"
-    }
-  fi
-done
-
-# Show deployment summary
-echo ""
-log "=== Deployment Summary ==="
-log "Deployment: ${DEPLOYMENT_NAME}"
-log "GitLab Version: ${GITLAB_VERSION}"
-log "Docker Network: ${NETWORK_NAME}"
-log "Deployed Services:"
-
-for service in "${DEPLOYED_SERVICES[@]}"; do
-  log "  - ${service} (container: ${DEPLOYMENT_NAME}-${service}, hostname: ${DEPLOYMENT_NAME}-${service}.local)"
-
-  # Display environment file info
-  env_file="${DEPLOYMENT_DIR}/${service}/.env"
-  if [ -f "${env_file}" ]; then
-    log "     Environment file: ${env_file}"
-  fi
-
-  # Attempt to find the automatically assigned ports
-  if docker port "${DEPLOYMENT_NAME}-${service}" &>/dev/null; then
-    log "     Exposed Ports:"
-    docker port "${DEPLOYMENT_NAME}-${service}" | while read -r port_mapping; do
-      # Enhance port display to show service:container mapping
-      container_port=$(echo "$port_mapping" | awk -F'->' '{print $2}' | tr -d ' ')
-      host_port=$(echo "$port_mapping" | awk -F'->' '{print $1}')
-      
-      case "$container_port" in
-        "80/tcp") service_name="HTTP" ;;
-        "443/tcp") service_name="HTTPS" ;;
-        "22/tcp") service_name="SSH" ;;
-        *) service_name="Service" ;;
-      esac
-      
-      log "       ${service_name}: ${host_port} -> ${container_port}"
-    done
-  fi
-done
-
-if [ ${FAILURE} -eq 1 ]; then
-  log_warn "Some services failed to deploy. Check the logs above for details."
-fi
-
-log_success "Deployment completed"
-echo ""
-log "Remember to update your /etc/hosts file with entries for each service:"
-for service in "${DEPLOYED_SERVICES[@]}"; do
-  echo "  127.0.0.1    ${DEPLOYMENT_NAME}-${service}.local"
-done
-
-log "Get the root password for your gitlab instance with:"
-echo "  docker exec -it CONTAINER_NAME grep 'Password: ' /etc/gitlab/initial_root_password "
+show_deployment_summary "${DEPLOYMENT_NAME}" "${NETWORK_NAME}" "${DEPLOYED_SERVICES[@]}"
