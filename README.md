@@ -285,7 +285,7 @@ docker exec -it basic-gitlab grep 'Password: ' /etc/gitlab/initial_root_password
 
 ## Example Deployment
 
-See [EXAMPLE.md](EXAMPLE.md) for complete deployment examples.
+See [EXAMPLES.md](EXAMPLES.md) for complete deployment examples.
 
 ## Template Reference
 
