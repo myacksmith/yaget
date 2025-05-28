@@ -1,7 +1,9 @@
 #!/bin/bash
 # template.sh - Template processing functions for YAGET
+# Manages environment variable substitution in template files
 
-# Export standard template variables
+# Export standard template variables for a service
+# These are the variables available in all templates
 export_template_variables() {
   local deployment_name="$1"
   local service_name="$2"
@@ -9,6 +11,7 @@ export_template_variables() {
   local artifacts_dir="$4"
   local templates_dir="$5"
   
+  # Core variables that templates can use
   export DEPLOYMENT_NAME="${deployment_name}"
   export SERVICE_NAME="${service_name}"
   export CONTAINER_NAME="${deployment_name}-${service_name}"
@@ -19,7 +22,7 @@ export_template_variables() {
   export HOSTNAME="${deployment_name}-${service_name}.local"
 }
 
-# Process a template file
+# Process a single template file with envsubst
 process_template() {
   local template_file="$1"
   local output_file="$2"
@@ -28,17 +31,19 @@ process_template() {
     log_error "Failed to process template: ${template_file}"
 }
 
-# Process all .tpl files in a directory
+# Process all .tpl files in a directory recursively
 process_template_files() {
   local source_dir="$1"
   local target_dir="$2"
   
+  # Find all .tpl files
   while IFS= read -r -d '' template_file; do
-    local relative_path="${template_file#$source_dir/}"
-    local output_file="${target_dir}/${relative_path%.tpl}"
+    local relative_path="${template_file#"$source_dir/"}"
+    local output_file="${target_dir}/${relative_path%.tpl}"  # Remove .tpl extension
     
     # Create subdirectories if needed
-    local output_dir="$(dirname "${output_file}")"
+    local output_dir
+    output_dir="$(dirname "${output_file}")"
     [ -d "${output_dir}" ] || mkdir -p "${output_dir}"
     
     process_template "${template_file}" "${output_file}"
@@ -46,6 +51,7 @@ process_template_files() {
 }
 
 # Find the docker-compose template for a service
+# Checks for custom template first, falls back to default
 find_compose_template() {
   local template_dir="$1"
   local service_name="$2"
