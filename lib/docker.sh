@@ -50,6 +50,12 @@ run_compose() {
   docker compose -f "${compose_file}" -p "${project_name}" up -d
 }
 
+# Get container image name
+get_container_image_info() {
+  local container="$1"
+  docker inspect "${container}" --format '{{.Config.Image}}' 2>/dev/null
+}
+
 # Port information
 get_container_ports() {
   local container="$1"
