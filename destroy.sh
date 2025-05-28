@@ -46,8 +46,19 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Get network name
+# Setup paths
 NETWORK_NAME="${DEPLOYMENT_NAME}-network"
+ARTIFACTS_ROOT="$(get_artifacts_root)"
+# Convert to absolute path if it exists
+mkdir -p "${ARTIFACTS_ROOT}" 2>/dev/null || true
+ARTIFACTS_ROOT="$(cd "${ARTIFACTS_ROOT}" 2>/dev/null && pwd || echo "${ARTIFACTS_ROOT}")"
+ARTIFACTS_DIR="${ARTIFACTS_ROOT}/${DEPLOYMENT_NAME}"
+
+# Show what we're destroying
+log_section "Destroying Deployment"
+log "Deployment: ${DEPLOYMENT_NAME}"
+log "Containers: ${DEPLOYMENT_NAME}-*"
+log "Network: ${NETWORK_NAME}"
 
 # Find and stop all containers
 log "Finding containers for deployment: ${DEPLOYMENT_NAME}"
@@ -61,28 +72,22 @@ else
   for container in ${CONTAINERS}; do
     stop_container "${container}"
     remove_container "${container}"
+    log_success "Removed container: ${container}"
   done
-  log_success "All containers have been removed"
 fi
 
 # Remove network
-remove_network "${NETWORK_NAME}"
+remove_network "${NETWORK_NAME}" && log_success "Removed network: ${NETWORK_NAME}"
 
 # Handle artifacts directory
-ARTIFACTS_ROOT="$(get_artifacts_root)"
-ARTIFACTS_DIR="${ARTIFACTS_ROOT}/${DEPLOYMENT_NAME}"
-
 if [ "${KEEP_DATA}" = false ] && [ -d "${ARTIFACTS_DIR}" ]; then
   log "Removing artifacts directory: ${ARTIFACTS_DIR}"
   rm -rf "${ARTIFACTS_DIR}"
-  log_success "Artifacts directory has been removed"
+  log_success "Removed artifacts: ${ARTIFACTS_DIR}"
 elif [ "${KEEP_DATA}" = true ] && [ -d "${ARTIFACTS_DIR}" ]; then
-  log "Artifacts directory preserved: ${ARTIFACTS_DIR}"
+  log "Artifacts preserved: ${ARTIFACTS_DIR}"
 fi
 
-# Show summary
+# Summary
 echo ""
-log "=== Destruction Summary ==="
-log "Deployment: ${DEPLOYMENT_NAME}"
-log "Keep Data: ${KEEP_DATA}"
-log_success "Destruction completed"
+log_success "Deployment destroyed successfully!"
