@@ -1,31 +1,5 @@
 # Examples
 
-## How Variables Work
-
-Templates define required variables:
-```ruby
-# gitlab.rb.tpl
-external_url '${EXTERNAL_URL}'
-gitlab_rails['ldap_servers'] = {
-  'main' => {
-    'host' => '${DEPLOYMENT_NAME}-ldap',
-    'bind_dn' => '${LDAP_BIND_DN}',
-    'password' => '${LDAP_BIND_PASSWORD}'
-  }
-}
-```
-
-Provide values via `.env` or command line:
-```bash
-# .env
-EXTERNAL_URL=http://gitlab.local
-LDAP_BIND_DN=cn=admin,dc=example,dc=org
-LDAP_BIND_PASSWORD=admin
-
-# Or command line
-EXTERNAL_URL=https://test.local ./deploy.sh sso
-```
-
 ## Basic GitLab
 
 Minimal setup with one GitLab instance:
@@ -38,6 +12,17 @@ templates/basic/gitlab/
 Deploy:
 ```bash
 ./deploy.sh basic
+
+[1/1] gitlab
+  Environment:
+    From ./.env:
+      GITLAB_VERSION=latest
+  
+  Image: gitlab/gitlab-ee:latest
+  Container: basic-gitlab
+  ✓ Ports:
+    80 → localhost:32768
+    443 → localhost:32769
 ```
 
 ## GitLab with LDAP
@@ -56,18 +41,37 @@ templates/sso/
         └── users.ldif     # User definitions
 ```
 
-Services connect using `${DEPLOYMENT_NAME}-${SERVICE_NAME}` hostnames.
-
 Deploy:
 ```bash
 ./deploy.sh sso
 
-# Verify LDAP users
-docker exec sso-ldap ldapsearch -x -b "dc=example,dc=org"
+[1/2] gitlab
+  Environment:
+    From ./templates/sso/gitlab/.env:
+      EXTERNAL_URL=http://gitlab.local
+      
+    From ./.env:
+      GITLAB_VERSION=16.7.0-ee.0
+      LDAP_BIND_DN=cn=admin,dc=example,dc=org
+      LDAP_BIND_PASSWORD=admin
+  
+  Container: sso-gitlab
+  ✓ Ports:
+    80 → localhost:32771
 
-# Check GitLab LDAP
-docker exec sso-gitlab gitlab-rake gitlab:ldap:check
+[2/2] ldap
+  Environment:
+    From ./templates/sso/ldap/.env:
+      LDAP_VERSION=1.5.0
+      LDAP_ORGANISATION=Example Inc
+      LDAP_ADMIN_PASSWORD=admin
+      
+  Container: sso-ldap
+  >>> Running post-deploy.sh
+      LDAP users loaded
 ```
+
+Services connect using `${DEPLOYMENT_NAME}-${SERVICE_NAME}` hostnames.
 
 ## Working with Running Deployments
 
@@ -87,55 +91,30 @@ docker cp basic-gitlab:/etc/gitlab/gitlab.rb templates/basic/gitlab/gitlab.rb
 # Logs
 tail -f artifacts/basic/gitlab/volumes/logs/gitlab-rails/production.log
 
-# Repositories  
-ls artifacts/basic/gitlab/volumes/data/git-data/repositories/
-
 # Backup
 tar -czf backup.tar.gz artifacts/basic/
 ```
 
-## Custom Deployment Example
+## Variable Precedence
 
-Create `templates/custom/`:
-
-```yaml
-# gitlab/docker-compose.yml.tpl
-services:
-  ${SERVICE_NAME}:
-    image: "gitlab/gitlab-ee:${GITLAB_VERSION}"
-    container_name: "${CONTAINER_NAME}"
-    volumes:
-      - "${CONFIG_PATH}/gitlab.rb:/etc/gitlab/gitlab.rb"
-      - "${CONFIG_PATH}/license.txt:/etc/gitlab/license.txt"  # License file
-      - "${SERVICE_DIR}/volumes/config:/etc/gitlab"
-      - "${SERVICE_DIR}/volumes/data:/var/opt/gitlab"
-    environment:
-      - EXTERNAL_URL=${EXTERNAL_URL}
-    networks:
-      - "${NETWORK_NAME}"
-
-# postgres/docker-compose.yml.tpl  
-services:
-  ${SERVICE_NAME}:
-    image: "postgres:${POSTGRES_VERSION}"
-    container_name: "${CONTAINER_NAME}"
-    environment:
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - "${SERVICE_DIR}/volumes/data:/var/lib/postgresql/data"
-    networks:
-      - "${NETWORK_NAME}"
-```
-
-With `.env`:
+Create `templates/custom/gitlab/.env`:
 ```bash
-# gitlab/.env
-GITLAB_VERSION=latest
+GITLAB_VERSION=16.0.0-ee.0
 EXTERNAL_URL=https://gitlab.test
-
-# postgres/.env
-POSTGRES_VERSION=14
-DB_PASSWORD=secure123
 ```
 
-GitLab connects to PostgreSQL at `custom-postgres:5432`.
+Override on command line:
+```bash
+# This wins
+GITLAB_VERSION=15.11.0 ./deploy.sh custom
+
+[1/1] gitlab
+  Environment:
+    From command line:
+      GITLAB_VERSION=15.11.0
+      
+    From ./templates/custom/gitlab/.env:
+      EXTERNAL_URL=https://gitlab.test
+```
+
+Command line always wins over .env files.

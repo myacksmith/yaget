@@ -24,14 +24,30 @@ templates/
 
 ## Variables
 
-| Variable | Value |
-|----------|-------|
-| `$DEPLOYMENT_NAME` | Deployment name (e.g., `basic`) |
-| `$SERVICE_NAME` | Service name (e.g., `gitlab`) |
-| `$CONTAINER_NAME` | Full name (e.g., `basic-gitlab`) |
-| `$NETWORK_NAME` | Docker network (e.g., `basic-network`) |
-| `$SERVICE_DIR` | Service path in artifacts |
-| `$CONFIG_PATH` | Same as SERVICE_DIR |
+YAGET provides these variables to all templates:
+
+| Variable | Value | Example |
+|----------|-------|---------|
+| `$DEPLOYMENT_NAME` | Deployment name | `sso` |
+| `$SERVICE_NAME` | Service name | `gitlab` |
+| `$CONTAINER_NAME` | Full container name | `sso-gitlab` |
+| `$HOSTNAME` | Docker hostname | `sso-gitlab.local` |
+| `$NETWORK_NAME` | Docker network | `sso-network` |
+| `$SERVICE_DIR` | Service path in artifacts | `/path/to/artifacts/sso/gitlab` |
+| `$CONFIG_PATH` | Same as SERVICE_DIR | `/path/to/artifacts/sso/gitlab` |
+| `$TEMPLATE_DIR` | Template path | `/path/to/templates/sso` |
+
+## Docker Hostnames
+
+YAGET provides a `HOSTNAME` variable for each service. To enable the /etc/hosts feature shown at deployment end:
+
+```yaml
+services:
+  ${SERVICE_NAME}:
+    hostname: "${HOSTNAME}"
+```
+
+Without this, the container won't respond to the suggested hostname.
 
 ## Volume Requirements
 
@@ -48,22 +64,20 @@ Never use Docker named volumes - they won't be cleaned up.
 
 ## Configuration Files
 
-For GitLab, we mount configs two ways:
+For GitLab, mount configs two ways:
 
 ```yaml
 volumes:
-  # Your config file (overrides anything in config dir)
+  # Your config file
   - "${CONFIG_PATH}/gitlab.rb:/etc/gitlab/gitlab.rb"
   
   # Config directory (for GitLab-generated files)
   - "${SERVICE_DIR}/volumes/config:/etc/gitlab"
 ```
 
-This lets you provide custom configs while GitLab can still write its own files.
-
 ## Environment Variables
 
-Templates use variables that must be set via:
+Set template variables via:
 
 1. `.env` files in template directories
 2. Command line: `VAR=value ./deploy.sh deployment`
@@ -74,15 +88,7 @@ Loading order (later overrides earlier):
 2. Service `.env` files  
 3. Command line/shell variables
 
-Example:
-```bash
-# templates/basic/gitlab/.env
-GITLAB_VERSION=latest
-EXTERNAL_URL=http://gitlab.local
-
-# Override any variable
-GITLAB_VERSION=16.0.0 ./deploy.sh basic
-```
+The deployment output shows which variables came from which source.
 
 ## Custom Docker Compose
 
@@ -97,9 +103,5 @@ templates/mydeployment/gitlab/docker-compose.yml.tpl
 
 ```bash
 # Use different template directory
-export YAGET_TEMPLATES_DIR=/shared/templates
-./deploy.sh custom
-
-# Or per-command
-YAGET_TEMPLATES_DIR=~/my-templates ./deploy.sh test
+YAGET_TEMPLATES_DIR=/shared/templates ./deploy.sh custom
 ```
