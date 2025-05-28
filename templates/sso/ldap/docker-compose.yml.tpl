@@ -8,9 +8,9 @@ services:
       - LDAP_DOMAIN=${LDAP_DOMAIN}
       - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD}
     volumes:
-      - "${SERVICE_DIR}/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom"
-      - "${SERVICE_DIR}/volumes/data:/var/lib/ldap"
-      - "${SERVICE_DIR}/volumes/config:/etc/ldap/slapd.d"
+      - "${SERVICE_DIR}/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom:rw"
+      - "${SERVICE_DIR}/volumes/data:/var/lib/ldap:rw"
+      - "${SERVICE_DIR}/volumes/config:/etc/ldap/slapd.d:rw"
     networks:
       - "${NETWORK_NAME}"
     ports:
