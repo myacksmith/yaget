@@ -53,13 +53,22 @@ run_deployment_script() {
     export SERVICE_NAME="${service_name}"
     export CONTAINER_NAME="${deployment_name}-${service_name}"
     
-    # Run script and indent output
-    "${script_path}" 2>&1 | sed 's/^/      /'
-    
-    # Check exit code
-    local exit_code=${PIPESTATUS[0]}
-    [ $exit_code -ne 0 ] && log_warn "Script ${script_type} returned non-zero exit code"
+    # Run script in a subshell to isolate execution from parent's error handling
+    # This prevents script failure from killing the entire deployment
+    local exit_code
+    exit_code=$(
+      "${script_path}" 2>&1 | sed 's/^/      /'
+      echo "${PIPESTATUS[0]}" # Preserve script's exit code, not sed's.
+    )
+
+    # Handle non-zero exit codes
+    if [ "$exit_code" -ne 0 ]; then
+      log_warn "Script ${script_type} returned non-zero exit code: ${exit_code}"
+      return "$exit_code"
+    fi
   fi
+
+  return 0
 }
 
 # Display initial configuration

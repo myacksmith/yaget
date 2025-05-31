@@ -93,7 +93,10 @@ for service_dir in ${SERVICE_DIRS}; do
   show_service_header "${CURRENT_STEP}" "${SERVICE_COUNT}" "${SERVICE_NAME}"
   
   # Run pre-deploy script
-  run_deployment_script "${DEPLOYMENT_NAME}" "${SERVICE_NAME}" "${service_dir}/pre-deploy.sh" "pre-deploy.sh"
+  if ! run_deployment_script "${DEPLOYMENT_NAME}" "${SERVICE_NAME}" "${service_dir}/pre-deploy.sh" "pre-deploy.sh"; then
+    log_error "Pre-deploy script failed for ${SERVICE_NAME}. Skipping service deployment"
+    continue
+  fi
   
   # Prepare service (copy files and process templates)
   prepare_service "${service_dir}" "${ARTIFACTS_DIR}" "${SERVICE_NAME}"
