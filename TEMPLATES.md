@@ -1,30 +1,36 @@
-# Template Reference
+# Using Templates
 
-## Structure
+## Quick Setup
+
+Templates are maintained in a separate repository for independent versioning:
+
+```bash
+# Symlink method (recommended)
+git clone git@gitlab.com:gitlab-yaker/yaget-templates ../yaget-templates
+ln -sf ../yaget-templates templates
+
+# Or use custom location
+git clone git@gitlab.com:gitlab-yaker/yaget-templates /shared/templates
+export YAGET_TEMPLATES_DIR=/shared/templates
+```
+
+## Template Structure
 
 ```
-templates/
-└── deployment-name/
-    ├── .env                      # Deployment defaults (optional)
-    └── service-name/
-        ├── .env                  # Service defaults (optional)
-        ├── docker-compose.yml.tpl # Custom compose file (optional)
-        ├── *.tpl                 # Any .tpl file gets processed
-        ├── pre-deploy.sh         # Pre-start script (optional)
-        └── post-deploy.sh        # Post-start script (optional)
+templates/deployment-name/
+├── .env                      # Deployment defaults (optional)
+└── service-name/
+    ├── .env                  # Service defaults (optional)
+    ├── docker-compose.yml.tpl # Custom compose file (optional)
+    ├── gitlab.rb.tpl         # Processed with envsubst
+    ├── gitlab.rb             # Copied as-is
+    ├── pre-deploy.sh         # Pre-start script (optional)
+    └── post-deploy.sh        # Post-start script (optional)
 ```
 
-## Template Processing
+## Available Variables
 
-- Files ending in `.tpl` are processed with `envsubst`
-- The `.tpl` extension is removed
-- All other files are copied as-is
-
-**Important**: `envsubst` only supports `$VAR` and `${VAR}`. No bash expansions like `${VAR:-default}`.
-
-## Variables
-
-YAGET provides these variables to all templates:
+YAGET provides these variables to all `.tpl` files:
 
 | Variable | Value | Example |
 |----------|-------|---------|
@@ -33,75 +39,55 @@ YAGET provides these variables to all templates:
 | `$CONTAINER_NAME` | Full container name | `sso-gitlab` |
 | `$HOSTNAME` | Docker hostname | `sso-gitlab.local` |
 | `$NETWORK_NAME` | Docker network | `sso-network` |
-| `$SERVICE_DIR` | Service path in artifacts | `/path/to/artifacts/sso/gitlab` |
+| `$SERVICE_DIR` | Service artifacts path | `/path/to/artifacts/sso/gitlab` |
 | `$CONFIG_PATH` | Same as SERVICE_DIR | `/path/to/artifacts/sso/gitlab` |
-| `$TEMPLATE_DIR` | Template path | `/path/to/templates/sso` |
-
-## Docker Hostnames
-
-YAGET provides a `HOSTNAME` variable for each service. To enable the /etc/hosts feature shown at deployment end:
-
-```yaml
-services:
-  ${SERVICE_NAME}:
-    hostname: "${HOSTNAME}"
-```
-
-Without this, the container won't respond to the suggested hostname.
-
-## Volume Requirements
-
-Always use bind mounts to `$SERVICE_DIR/volumes/`:
-
-```yaml
-volumes:
-  - "${SERVICE_DIR}/volumes/config:/etc/gitlab"
-  - "${SERVICE_DIR}/volumes/logs:/var/log/gitlab"
-  - "${SERVICE_DIR}/volumes/data:/var/opt/gitlab"
-```
-
-Never use Docker named volumes - they won't be cleaned up.
-
-## Configuration Files
-
-For GitLab, mount configs two ways:
-
-```yaml
-volumes:
-  # Your config file
-  - "${CONFIG_PATH}/gitlab.rb:/etc/gitlab/gitlab.rb"
-  
-  # Config directory (for GitLab-generated files)
-  - "${SERVICE_DIR}/volumes/config:/etc/gitlab"
-```
+| `$TEMPLATE_DIR` | Template source path | `/path/to/templates/sso` |
 
 ## Environment Variables
 
 Set template variables via:
 
-1. `.env` files in template directories
-2. Command line: `VAR=value ./deploy.sh deployment`
-3. Exported shell variables
+1. **Root `.env` file** - Global defaults (lowest precedence)
+2. **Deployment `.env` file** - All services within that deployment
+3. **Service `.env` files** - Service-specific defaults  
+4. **Command line** - Global, applies to all services (highest precedence)
 
-Loading order (later overrides earlier):
-1. Root `.env` file
-2. Service `.env` files  
-3. Command line/shell variables
+```bash
+# Examples
+GITLAB_VERSION=16.0.0 ./deploy.sh basic
+export EXTERNAL_URL=https://gitlab.test
+```
 
 The deployment output shows which variables came from which source.
 
-## Custom Docker Compose
+## Template Processing
 
-If no `docker-compose.yml.tpl` exists in the service directory, YAGET uses the default template.
+- Except for pre and post deploy scripts, files ending in `.tpl` are processed with `envsubst` (`.tpl` extension removed)
+- All other files are copied as-is
+- Scripts (`pre-deploy.sh`, `post-deploy.sh`) are NOT processed but have access to all [Available Variables](#available-variables)
+- **Important**: `envsubst` only supports `$VAR` and `${VAR}` syntax
 
-To customize, create your own:
+## Docker Requirements
+
+Always use bind mounts to `$SERVICE_DIR/volumes/`:
+
+```yaml
+volumes:
+  - "${SERVICE_DIR}/volumes/data:/var/opt/gitlab"
+  - "${CONFIG_PATH}/gitlab.rb:/etc/gitlab/gitlab.rb"
 ```
-templates/mydeployment/gitlab/docker-compose.yml.tpl
+
+Enable Docker hostnames with:
+```yaml
+hostname: "${HOSTNAME}"
 ```
 
-## External Templates
+## Troubleshooting
 
-```bash
-# Use different template directory
-YAGET_TEMPLATES_DIR=/shared/templates ./deploy.sh custom
-```
+**Template not found**: Check `YAGET_TEMPLATES_DIR` points to correct location
+**Variable not substituted**: Ensure `.tpl` extension and `${VAR}` syntax
+**Permission denied**: Check script files are executable (`chmod +x`)
+
+---
+
+For comprehensive template authoring guide, see the [YAGET-Templates repository](https://gitlab.com/gitlab-yaker/yaget-templates).
