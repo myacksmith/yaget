@@ -60,6 +60,9 @@ DEFAULT_TEMPLATE="${SCRIPT_DIR}/docker-compose.yml.tpl"
 log "Loading environment:"
 [ -f "${SCRIPT_DIR}/.env" ] && log_success "${SCRIPT_DIR}/.env" && load_env_file "${SCRIPT_DIR}/.env"
 
+# Load deployment-level environment 
+[ -f "${TEMPLATE_DIR}/.env" ] && log_success "${TEMPLATE_DIR}/.env" && load_env_file "${TEMPLATE_DIR}/.env"
+
 # Show initial configuration
 show_configuration "${DEPLOYMENT_NAME}" "${NETWORK_NAME}" "${TEMPLATE_DIR}" "${ARTIFACTS_DIR}"
 
