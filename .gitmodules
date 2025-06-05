@@ -1,0 +1,3 @@
+[submodule "templates"]
+	path = templates
+	url = git@gitlab.com:yaker-gitlab/yaget-templates.git
